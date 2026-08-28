@@ -19,7 +19,7 @@ const ServiceImage = ({ src, alt, className, sizes }: ServiceImageProps) => {
 
 	return (
 		<Image
-			src={showPlaceholder ? AlterImage.service.placeholder3d : imgSrc}
+			src={showPlaceholder ? AlterImage.service.serviceAvatar : imgSrc}
 			alt={alt}
 			fill
 			sizes={sizes}

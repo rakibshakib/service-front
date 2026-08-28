@@ -1,8 +1,8 @@
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Star } from "lucide-react";
-import type { ServiceCardComputed } from "./types";
+import Image from "next/image";
 import ServiceImage from "./ServiceImage";
+import type { ServiceCardComputed } from "./types";
 
 const Horizontal = ({
 	service,
@@ -13,9 +13,9 @@ const Horizontal = ({
 	const { name, shortDescription, image, category, vendors = [] } = service;
 
 	return (
-		<div className="group relative flex items-stretch w-full max-w-[340px] rounded-xl border border-border bg-card text-card-foreground shadow-sm transition-all duration-300 hover:shadow-lg hover:shadow-primary/5">
+		<div className="group relative flex items-stretch w-full max-w-85 rounded-xl border border-border bg-card text-card-foreground shadow-sm transition-all duration-300 hover:shadow-lg hover:shadow-primary/5">
 			{/* Image - Left Side */}
-			<div className="relative overflow-hidden rounded-l-xl w-20 sm:w-24 shrink-0 bg-muted">
+			<div className="relative overflow-hidden rounded-l-xl w-20 sm:w-30 shrink-0 bg-muted">
 				<ServiceImage
 					src={image}
 					alt={name}
@@ -26,16 +26,16 @@ const Horizontal = ({
 
 				{/* Badges on image - stacked */}
 				<div className="absolute top-1.5 left-1.5 flex flex-col items-start gap-1">
-					{category && (
-						<span className="bg-card/90 backdrop-blur-sm text-foreground text-[8px] sm:text-[9px] font-semibold px-1.5 py-0.5 rounded-full shadow-sm border border-border/50">
-							{category}
-						</span>
-					)}
 					{hasDiscount && (
 						<span className="bg-danger text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-md">
 							{service.discountType === "percent"
 								? `${service.discountAmount}% OFF`
 								: `৳${service.discountAmount} OFF`}
+						</span>
+					)}
+					{category && (
+						<span className="bg-card/90 backdrop-blur-sm text-foreground text-[8px] sm:text-[9px] font-semibold px-1.5 py-0.5 rounded-full shadow-sm border border-border/50">
+							{category}
 						</span>
 					)}
 				</div>

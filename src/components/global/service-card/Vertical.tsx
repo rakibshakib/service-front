@@ -1,10 +1,15 @@
-import Image from "next/image";
-import { Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { ServiceCardComputed } from "./types";
+import { Star } from "lucide-react";
+import Image from "next/image";
 import ServiceImage from "./ServiceImage";
+import type { ServiceCardComputed } from "./types";
 
-const Vertical = ({ service, finalPrice, hasDiscount, avgRating }: ServiceCardComputed) => {
+const Vertical = ({
+	service,
+	finalPrice,
+	hasDiscount,
+	avgRating,
+}: ServiceCardComputed) => {
 	const { name, shortDescription, image, category, vendors = [] } = service;
 
 	return (
@@ -21,13 +26,13 @@ const Vertical = ({ service, finalPrice, hasDiscount, avgRating }: ServiceCardCo
 				<div className="absolute inset-0 bg-linear-to-t from-black/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
 				{category && (
-					<span className="absolute top-2 left-2 bg-card/90 backdrop-blur-sm text-foreground text-[10px] font-semibold px-2 py-0.5 rounded-full shadow-sm border border-border/50">
+					<span className="absolute top-2 right-2 bg-card/90 backdrop-blur-sm text-foreground text-[10px] font-semibold px-2 py-0.5 rounded-full shadow-sm border border-border/50">
 						{category}
 					</span>
 				)}
 
 				{hasDiscount && (
-					<span className="absolute top-2 right-2 bg-danger text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md">
+					<span className="absolute top-2 left-2 bg-danger text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md">
 						{service.discountType === "percent"
 							? `${service.discountAmount}% OFF`
 							: `৳${service.discountAmount} OFF`}
@@ -52,7 +57,10 @@ const Vertical = ({ service, finalPrice, hasDiscount, avgRating }: ServiceCardCo
 								<div
 									key={vendor.name}
 									className="relative w-5 h-5 rounded-full overflow-hidden border-2 border-card bg-muted"
-									style={{ marginLeft: i > 0 ? "-6px" : 0, zIndex: 3 - i }}
+									style={{
+										marginLeft: i > 0 ? "-6px" : 0,
+										zIndex: 3 - i,
+									}}
 								>
 									<Image
 										src={
