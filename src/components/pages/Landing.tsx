@@ -20,7 +20,6 @@ import {
 	Star,
 	Tag,
 	TrendingUp,
-	UserCheck,
 	X,
 } from "lucide-react";
 import Image from "next/image";
@@ -473,7 +472,9 @@ const Landing = () => {
 						<h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.1]">
 							Expert Services,
 							<br />
-							<span className="text-accent">Right at Your Doorstep.</span>
+							<span className="text-accent">
+								Right at Your Doorstep.
+							</span>
 						</h1>
 
 						{/* Subtitle */}
@@ -547,8 +548,12 @@ const Landing = () => {
 											⚡
 										</div>
 										<div>
-											<h4 className="font-bold text-sm">Instant Booking</h4>
-											<p className="text-[11px] text-white/60">Get pros within 60 min</p>
+											<h4 className="font-bold text-sm">
+												Instant Booking
+											</h4>
+											<p className="text-[11px] text-white/60">
+												Get pros within 60 min
+											</p>
 										</div>
 									</div>
 									<span className="bg-accent/20 text-accent text-[10px] font-bold px-2.5 py-1 rounded-full border border-accent/30">
@@ -562,7 +567,9 @@ const Landing = () => {
 										<div className="text-[10px] text-white/50 uppercase tracking-wider font-medium">
 											Happy Clients
 										</div>
-										<div className="text-xl font-black mt-1">50,000+</div>
+										<div className="text-xl font-black mt-1">
+											50,000+
+										</div>
 									</div>
 									<div className="bg-white/10 backdrop-blur-sm p-3.5 rounded-xl border border-white/10">
 										<div className="text-[10px] text-white/50 uppercase tracking-wider font-medium">
@@ -581,8 +588,12 @@ const Landing = () => {
 										<ShieldCheck className="w-5 h-5 text-accent" />
 									</div>
 									<div>
-										<div className="text-xs font-bold">Verified Guarantee</div>
-										<div className="text-[10px] text-white/50">Free re-service if unsatisfied</div>
+										<div className="text-xs font-bold">
+											Verified Guarantee
+										</div>
+										<div className="text-[10px] text-white/50">
+											Free re-service if unsatisfied
+										</div>
 									</div>
 								</div>
 							</div>
@@ -591,9 +602,10 @@ const Landing = () => {
 				</div>
 			</section>
 
-			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-14 py-12">
+			{/* px-4 sm:px-6 lg:px-8  */}
+			<div className="max-w-7xl mx-auto space-y-14 py-12">
 				{/* CATEGORIES */}
-				<section>
+				<section className="ps-4 pe-0">
 					<div className="flex flex-col sm:flex-row sm:items-end justify-between mb-6 gap-2">
 						<div>
 							<div className="flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-wider">
@@ -657,7 +669,7 @@ const Landing = () => {
 				</section>
 
 				{/* POPULAR SERVICES - Using Slider + ServiceCard */}
-				<section>
+				<section className="ps-4 pe-0">
 					<div className="flex justify-between items-end mb-6">
 						<div>
 							<div className="flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-wider">
@@ -702,13 +714,9 @@ const Landing = () => {
 				</section>
 
 				{/* TOP VENDORS */}
-				<section className="bg-muted/50 p-6 sm:p-10 rounded-3xl border border-border">
+				<section className="bg-muted/50 py-4 ps-4 pe-0 sm:p-10 rounded-none md:rounded-3xl border border-border">
 					<div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
 						<div>
-							<div className="flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-wider">
-								<UserCheck className="w-3.5 h-3.5" />
-								<span>Verified Service Partners</span>
-							</div>
 							<h2 className="text-base sm:text-xl font-extrabold text-foreground mt-1">
 								Top Rated Vendors
 							</h2>
@@ -716,13 +724,6 @@ const Landing = () => {
 								Handpicked professionals with top performance ratings
 							</p>
 						</div>
-						<a
-							href="#"
-							className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:text-secondary hover:underline"
-						>
-							<span>Become a Vendor Partner</span>
-							<ChevronRight className="w-4 h-4" />
-						</a>
 					</div>
 
 					<Slider
@@ -752,7 +753,7 @@ const Landing = () => {
 				</section>
 
 				{/* DISCOUNT SERVICES */}
-				<section>
+				<section className="ps-4 pe-0">
 					<div className="flex justify-between items-end mb-6">
 						<div>
 							<div className="flex items-center gap-2 text-xs font-bold text-danger uppercase tracking-wider">
@@ -787,12 +788,12 @@ const Landing = () => {
 				</section>
 
 				{/* NEW VENDORS */}
-				<section className="bg-gradient-to-br from-secondary/10 via-accent/10 to-primary/10 border border-border rounded-3xl p-6 sm:p-10 relative overflow-hidden">
+				<section className="bg-linear-to-br	 from-secondary/10 via-accent/10 to-primary/10 border border-border rounded-none md:rounded-3xl py-4 ps-4 pe-0 sm:p-10 relative overflow-hidden">
 					<div className="absolute right-0 bottom-0 opacity-5 pointer-events-none">
 						<Sparkles className="w-80 h-80 text-primary" />
 					</div>
 					<div className="relative z-10">
-						<div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
+						<div className="flex flex-col sm:flex-row sm:items-end justify-between mb-4 gap-4">
 							<div>
 								<span className="bg-secondary/15 text-secondary border border-secondary/20 text-xs font-extrabold px-3 py-1 rounded-full uppercase tracking-widest inline-block mb-2">
 									Fresh Partners
@@ -836,7 +837,7 @@ const Landing = () => {
 								autoplay: { delay: 3000 },
 								loop: true,
 								breakpoints: {
-									0: { slidesPerView: 1.1, spaceBetween: 8 },
+									0: { slidesPerView: 1.2, spaceBetween: 8 },
 									480: { slidesPerView: 1.5, spaceBetween: 10 },
 									640: { slidesPerView: 2, spaceBetween: 12 },
 									768: { slidesPerView: 3, spaceBetween: 14 },
@@ -848,7 +849,7 @@ const Landing = () => {
 			</div>
 
 			{/* FOOTER */}
-			<footer className="bg-primary/5 text-muted-foreground mt-16 border-t border-border">
+			<footer className="bg-primary/5 text-muted-foreground mt-8 border-t border-border">
 				{/* Main Footer */}
 				<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
 					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 lg:gap-8">
