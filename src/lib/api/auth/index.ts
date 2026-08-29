@@ -6,7 +6,6 @@ export interface LoginPayload {
 }
 
 export interface AuthResponse {
-	token: string;
 	user: {
 		id: string;
 		name: string;
@@ -22,6 +21,9 @@ export const authApi = {
 
 	getProfile: (): Promise<AuthResponse["user"]> =>
 		api.get("/auth/profile"),
+
+	logout: (): Promise<{ message: string }> =>
+		api.post("/auth/logout"),
 
 	forgotPassword: (email: string): Promise<{ message: string }> =>
 		api.post("/auth/forgot-password", { email }),

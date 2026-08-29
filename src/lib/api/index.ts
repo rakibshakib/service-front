@@ -3,6 +3,7 @@ import axios from "axios";
 const api = axios.create({
 	baseURL: process.env.NEXT_PUBLIC_API_URL || "https://api.shebapro.com/api/v1",
 	timeout: 15000,
+	withCredentials: true,
 	headers: {
 		"Content-Type": "application/json",
 	},
@@ -11,12 +12,6 @@ const api = axios.create({
 // Request Interceptor
 api.interceptors.request.use(
 	(config) => {
-		if (typeof window !== "undefined") {
-			const token = localStorage.getItem("sbp_token");
-			if (token) {
-				config.headers.Authorization = `Bearer ${token}`;
-			}
-		}
 		return config;
 	},
 	(error) => Promise.reject(error),
@@ -30,12 +25,11 @@ api.interceptors.response.use(
 	async (error) => {
 		const originalRequest = error.config;
 
-		// Handle 401 - Unauthorized (token expired)
+		// Handle 401 - Unauthorized (cookie expired or invalid)
 		if (error.response?.status === 401 && !originalRequest._retry) {
 			originalRequest._retry = true;
 
 			if (typeof window !== "undefined") {
-				localStorage.removeItem("sbp_token");
 				window.location.href = "/login/admin";
 			}
 
