@@ -3,38 +3,44 @@
 import PasswordInput from "@/components/global/PasswordInput";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import useLoginMutate from "@/lib/api/auth/useLoginMutate";
 import { ArrowRight, Building2, Mail, Sparkles } from "lucide-react";
+import { useFormik } from "formik";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
 
 export default function VendorLoginPage() {
-	const [email, setEmail] = useState("");
-	const [password, setPassword] = useState("");
-	const [isLoading, setIsLoading] = useState(false);
-	const [error, setError] = useState("");
+	const { mutate, isPending, error } = useLoginMutate();
 
-	const handleSubmit = (e: React.FormEvent) => {
-		e.preventDefault();
-		setError("");
-
-		if (!email || !password) {
-			setError("Please enter both email and password.");
-			return;
-		}
-
-		setIsLoading(true);
-		setTimeout(() => {
-			setIsLoading(false);
-			alert("Logged in as Vendor!");
-		}, 1200);
-	};
+	const formik = useFormik({
+		initialValues: {
+			email: "",
+			password: "",
+		},
+		validate: (values) => {
+			const errors: Partial<typeof values> = {};
+			if (!values.email) {
+				errors.email = "Email is required";
+			} else if (!/\S+@\S+\.\S+/.test(values.email)) {
+				errors.email = "Invalid email format";
+			}
+			if (!values.password) {
+				errors.password = "Password is required";
+			} else if (values.password.length < 6) {
+				errors.password = "Password must be at least 6 characters";
+			}
+			return errors;
+		},
+		onSubmit: (values) => {
+			mutate(values);
+		},
+	});
 
 	return (
 		<div className="min-h-screen flex">
 			{/* Left - Branding */}
 			<div className="hidden lg:flex lg:w-1/2 bg-secondary relative overflow-hidden">
-				<div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] bg-size-[20px_20px]" />
+				<div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:20px_20px]" />
 				<div className="absolute -top-32 -left-32 w-64 h-64 bg-primary/30 rounded-full blur-3xl" />
 				<div className="absolute -bottom-32 -right-32 w-64 h-64 bg-accent/20 rounded-full blur-3xl" />
 
@@ -45,7 +51,7 @@ export default function VendorLoginPage() {
 							alt="ShebaPro"
 							width={44}
 							height={44}
-							className="rounded-xl shadow-md group-hover:scale-105 transition-transform object-contain bg-accent-foreground"
+							className="rounded-xl object-contain"
 						/>
 						<div>
 							<span className="text-xl font-extrabold text-white leading-none">
@@ -64,8 +70,7 @@ export default function VendorLoginPage() {
 					</h1>
 					<p className="text-sm text-white/60 mt-4 max-w-md leading-relaxed">
 						Manage your services, track bookings, and connect with
-						customers across Bangladesh. Scale your business with
-						ShebaPro.
+						customers across Bangladesh. Scale your business with ShebaPro.
 					</p>
 
 					<div className="mt-10 flex items-center gap-6 text-xs text-white/50">
@@ -116,15 +121,15 @@ export default function VendorLoginPage() {
 							Enter your credentials to manage your services
 						</p>
 
-						{/* Error */}
+						{/* Error Alert */}
 						{error && (
 							<div className="mt-4 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs font-medium">
-								{error}
+								{(error as { message?: string })?.message || "Login failed. Please try again."}
 							</div>
 						)}
 
 						{/* Form */}
-						<form onSubmit={handleSubmit} className="mt-6 space-y-4">
+						<form onSubmit={formik.handleSubmit} className="mt-6 space-y-4">
 							<div className="space-y-1.5">
 								<label className="block text-xs font-bold text-foreground">
 									Business Email
@@ -133,20 +138,30 @@ export default function VendorLoginPage() {
 									<Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
 									<Input
 										type="email"
-										value={email}
-										onChange={(e) => setEmail(e.target.value)}
+										name="email"
+										value={formik.values.email}
+										onChange={formik.handleChange}
+										onBlur={formik.handleBlur}
 										placeholder="vendor@company.com"
 										className="h-11 pl-10 bg-muted/50 border-border text-sm rounded-xl focus-visible:ring-primary/20"
 									/>
 								</div>
+								{formik.touched.email && formik.errors.email && (
+									<p className="text-[11px] text-destructive">{formik.errors.email}</p>
+								)}
 							</div>
 
 							<PasswordInput
 								label="Password"
-								value={password}
-								onChange={(e) => setPassword(e.target.value)}
+								name="password"
+								value={formik.values.password}
+								onChange={formik.handleChange}
+								onBlur={formik.handleBlur}
 								placeholder="Enter your password"
 							/>
+							{formik.touched.password && formik.errors.password && (
+								<p className="text-[11px] text-destructive">{formik.errors.password}</p>
+							)}
 
 							<div className="flex items-center justify-between pt-1">
 								<label className="flex items-center gap-2 cursor-pointer select-none">
@@ -159,21 +174,18 @@ export default function VendorLoginPage() {
 										Remember me
 									</span>
 								</label>
-								<a
-									href="#"
-									className="text-xs font-bold text-secondary hover:underline"
-								>
+								<a href="#" className="text-xs font-bold text-secondary hover:underline">
 									Forgot password?
 								</a>
 							</div>
 
 							<Button
 								type="submit"
-								disabled={isLoading}
+								disabled={isPending}
 								variant="secondary"
 								className="w-full h-11 rounded-xl font-bold text-sm shadow-lg shadow-secondary/20"
 							>
-								{isLoading ? (
+								{isPending ? (
 									<div className="w-4 h-4 border-2 border-secondary-foreground/30 border-t-secondary-foreground rounded-full animate-spin" />
 								) : (
 									<>
@@ -186,10 +198,7 @@ export default function VendorLoginPage() {
 
 						<p className="mt-6 text-center text-xs text-muted-foreground">
 							New vendor?{" "}
-							<a
-								href="#"
-								className="font-bold text-secondary hover:underline"
-							>
+							<a href="#" className="font-bold text-secondary hover:underline">
 								Register here
 							</a>
 						</p>

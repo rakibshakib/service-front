@@ -3,32 +3,38 @@
 import PasswordInput from "@/components/global/PasswordInput";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import useLoginMutate from "@/lib/api/auth/useLoginMutate";
 import { ArrowRight, Mail, ShieldCheck } from "lucide-react";
+import { useFormik } from "formik";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
 
 export default function AdminLoginPage() {
-	const [email, setEmail] = useState("");
-	const [password, setPassword] = useState("");
-	const [isLoading, setIsLoading] = useState(false);
-	const [error, setError] = useState("");
+	const { mutate, isPending, error } = useLoginMutate();
 
-	const handleSubmit = (e: React.FormEvent) => {
-		e.preventDefault();
-		setError("");
-
-		if (!email || !password) {
-			setError("Please enter both email and password.");
-			return;
-		}
-
-		setIsLoading(true);
-		setTimeout(() => {
-			setIsLoading(false);
-			alert("Logged in as Admin!");
-		}, 1200);
-	};
+	const formik = useFormik({
+		initialValues: {
+			email: "",
+			password: "",
+		},
+		validate: (values) => {
+			const errors: Partial<typeof values> = {};
+			if (!values.email) {
+				errors.email = "Email is required";
+			} else if (!/\S+@\S+\.\S+/.test(values.email)) {
+				errors.email = "Invalid email format";
+			}
+			if (!values.password) {
+				errors.password = "Password is required";
+			} else if (values.password.length < 6) {
+				errors.password = "Password must be at least 6 characters";
+			}
+			return errors;
+		},
+		onSubmit: (values) => {
+			mutate(values);
+		},
+	});
 
 	return (
 		<div className="min-h-screen flex">
@@ -45,8 +51,7 @@ export default function AdminLoginPage() {
 							alt="ShebaPro"
 							width={44}
 							height={44}
-							// className="rounded-xl object-contain"
-							className="rounded-xl shadow-md group-hover:scale-105 transition-transform object-contain bg-accent-foreground"
+							className="rounded-xl object-contain"
 						/>
 						<div>
 							<span className="text-xl font-extrabold text-white leading-none">
@@ -116,15 +121,15 @@ export default function AdminLoginPage() {
 							Enter your credentials to access the admin panel
 						</p>
 
-						{/* Error */}
+						{/* Error Alert */}
 						{error && (
 							<div className="mt-4 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs font-medium">
-								{error}
+								{(error as { message?: string })?.message || "Login failed. Please try again."}
 							</div>
 						)}
 
 						{/* Form */}
-						<form onSubmit={handleSubmit} className="mt-6 space-y-4">
+						<form onSubmit={formik.handleSubmit} className="mt-6 space-y-4">
 							<div className="space-y-1.5">
 								<label className="block text-xs font-bold text-foreground">
 									Email Address
@@ -133,20 +138,30 @@ export default function AdminLoginPage() {
 									<Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
 									<Input
 										type="email"
-										value={email}
-										onChange={(e) => setEmail(e.target.value)}
+										name="email"
+										value={formik.values.email}
+										onChange={formik.handleChange}
+										onBlur={formik.handleBlur}
 										placeholder="admin@shebapro.com"
 										className="h-11 pl-10 bg-muted/50 border-border text-sm rounded-xl focus-visible:ring-primary/20"
 									/>
 								</div>
+								{formik.touched.email && formik.errors.email && (
+									<p className="text-[11px] text-destructive">{formik.errors.email}</p>
+								)}
 							</div>
 
 							<PasswordInput
 								label="Password"
-								value={password}
-								onChange={(e) => setPassword(e.target.value)}
+								name="password"
+								value={formik.values.password}
+								onChange={formik.handleChange}
+								onBlur={formik.handleBlur}
 								placeholder="Enter your password"
 							/>
+							{formik.touched.password && formik.errors.password && (
+								<p className="text-[11px] text-destructive">{formik.errors.password}</p>
+							)}
 
 							<div className="flex items-center justify-between pt-1">
 								<label className="flex items-center gap-2 cursor-pointer select-none">
@@ -159,20 +174,17 @@ export default function AdminLoginPage() {
 										Remember me
 									</span>
 								</label>
-								<a
-									href="#"
-									className="text-xs font-bold text-primary hover:underline"
-								>
+								<a href="#" className="text-xs font-bold text-primary hover:underline">
 									Forgot password?
 								</a>
 							</div>
 
 							<Button
 								type="submit"
-								disabled={isLoading}
+								disabled={isPending}
 								className="w-full h-11 rounded-xl font-bold text-sm shadow-lg shadow-primary/20"
 							>
-								{isLoading ? (
+								{isPending ? (
 									<div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
 								) : (
 									<>
@@ -184,10 +196,7 @@ export default function AdminLoginPage() {
 						</form>
 
 						<p className="mt-6 text-center text-xs text-muted-foreground">
-							<Link
-								href="/login/vendor"
-								className="font-bold text-primary hover:underline"
-							>
+							<Link href="/login/vendor" className="font-bold text-primary hover:underline">
 								Vendor login?
 							</Link>
 						</p>
