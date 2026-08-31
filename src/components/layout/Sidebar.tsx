@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { LogOut } from "lucide-react";
+import useLogoutMutate from "@/lib/api/auth/useLogoutMutate";
 import SidebarItem from "./SidebarItem";
 import type { SidebarConfig } from "./sidebar-config";
 
@@ -12,6 +13,7 @@ interface SidebarProps {
 
 const Sidebar = ({ config, isCollapsed }: SidebarProps) => {
 	const Icon = config.icon;
+	const { mutate: logout, isPending } = useLogoutMutate();
 
 	return (
 		<aside
@@ -66,8 +68,16 @@ const Sidebar = ({ config, isCollapsed }: SidebarProps) => {
 						isCollapsed={isCollapsed}
 					/>
 				))}
-				<button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-destructive hover:bg-destructive/10 transition-colors">
-					<LogOut className="w-4 h-4" />
+				<button
+					onClick={() => logout()}
+					disabled={isPending}
+					className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
+				>
+					{isPending ? (
+						<div className="w-4 h-4 border-2 border-destructive/30 border-t-destructive rounded-full animate-spin" />
+					) : (
+						<LogOut className="w-4 h-4" />
+					)}
 					{!isCollapsed && <span>Sign Out</span>}
 				</button>
 			</div>

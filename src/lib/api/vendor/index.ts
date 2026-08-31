@@ -1,4 +1,5 @@
 import api from "../index";
+import ApiRoutes from "../api-routes";
 
 export interface Vendor {
 	id: string;
@@ -46,33 +47,36 @@ export interface Discount {
 
 export const vendorApi = {
 	// Profile
-	getProfile: (): Promise<Vendor> => api.get("/vendor/profile"),
+	getProfile: (): Promise<Vendor> => api.get(ApiRoutes.vendor.profile),
 	updateProfile: (data: Partial<Vendor>): Promise<Vendor> =>
-		api.put("/vendor/profile", data),
+		api.put(ApiRoutes.vendor.profile, data),
 
 	// Services
-	getServices: (): Promise<Service[]> => api.get("/vendor/services"),
+	getServices: (): Promise<Service[]> =>
+		api.get(ApiRoutes.vendor.services),
 	createService: (data: Partial<Service>): Promise<Service> =>
-		api.post("/vendor/services", data),
+		api.post(ApiRoutes.vendor.createService, data),
 	updateService: (id: string, data: Partial<Service>): Promise<Service> =>
-		api.put(`/vendor/services/${id}`, data),
+		api.put(`${ApiRoutes.vendor.services}/${id}`, data),
 	deleteService: (id: string): Promise<{ message: string }> =>
-		api.delete(`/vendor/services/${id}`),
+		api.delete(`${ApiRoutes.vendor.services}/${id}`),
 
 	// Bookings
-	getBookings: (): Promise<Booking[]> => api.get("/vendor/bookings"),
+	getBookings: (): Promise<Booking[]> =>
+		api.get(ApiRoutes.vendor.bookings),
 	updateBookingStatus: (
 		id: string,
 		status: Booking["status"],
 	): Promise<Booking> =>
-		api.patch(`/vendor/bookings/${id}/status`, { status }),
+		api.patch(`${ApiRoutes.vendor.bookings}/${id}/status`, { status }),
 
 	// Discounts
-	getDiscounts: (): Promise<Discount[]> => api.get("/vendor/discounts"),
+	getDiscounts: (): Promise<Discount[]> =>
+		api.get(ApiRoutes.vendor.discounts),
 	createDiscount: (data: Partial<Discount>): Promise<Discount> =>
-		api.post("/vendor/discounts", data),
+		api.post(ApiRoutes.vendor.createDiscount, data),
 	deleteDiscount: (id: string): Promise<{ message: string }> =>
-		api.delete(`/vendor/discounts/${id}`),
+		api.delete(`${ApiRoutes.vendor.discounts}/${id}`),
 
 	// Dashboard Stats
 	getDashboardStats: (): Promise<{
@@ -80,5 +84,5 @@ export const vendorApi = {
 		totalBookings: number;
 		completed: number;
 		rating: number;
-	}> => api.get("/vendor/dashboard/stats"),
+	}> => api.get(ApiRoutes.vendor.dashboardStats),
 };

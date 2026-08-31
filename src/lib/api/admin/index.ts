@@ -1,4 +1,5 @@
 import api from "../index";
+import ApiRoutes from "../api-routes";
 
 export interface AdminVendor {
 	id: string;
@@ -38,34 +39,37 @@ export interface PlatformStats {
 export const adminApi = {
 	// Dashboard
 	getDashboardStats: (): Promise<PlatformStats> =>
-		api.get("/admin/dashboard/stats"),
+		api.get(ApiRoutes.admin.dashboardStats),
 
 	// Vendors
-	getVendors: (): Promise<AdminVendor[]> => api.get("/admin/vendors"),
+	getVendors: (): Promise<AdminVendor[]> =>
+		api.get(ApiRoutes.admin.vendors),
 	getVendor: (id: string): Promise<AdminVendor> =>
-		api.get(`/admin/vendors/${id}`),
+		api.get(`${ApiRoutes.admin.vendors}/${id}`),
 	updateVendorStatus: (
 		id: string,
 		status: AdminVendor["status"],
 	): Promise<AdminVendor> =>
-		api.patch(`/admin/vendors/${id}/status`, { status }),
+		api.patch(`${ApiRoutes.admin.vendors}/${id}/status`, { status }),
 
 	// Customers
-	getCustomers: (): Promise<Customer[]> => api.get("/admin/customers"),
+	getCustomers: (): Promise<Customer[]> =>
+		api.get(ApiRoutes.admin.customers),
 	getCustomer: (id: string): Promise<Customer> =>
-		api.get(`/admin/customers/${id}`),
+		api.get(`${ApiRoutes.admin.customers}/${id}`),
 
 	// Categories
-	getCategories: (): Promise<Category[]> => api.get("/admin/categories"),
+	getCategories: (): Promise<Category[]> =>
+		api.get(ApiRoutes.admin.categories),
 	createCategory: (data: Partial<Category>): Promise<Category> =>
-		api.post("/admin/categories", data),
+		api.post(ApiRoutes.admin.createCategory, data),
 	updateCategory: (
 		id: string,
 		data: Partial<Category>,
 	): Promise<Category> =>
-		api.put(`/admin/categories/${id}`, data),
+		api.put(`${ApiRoutes.admin.categories}/${id}`, data),
 	deleteCategory: (id: string): Promise<{ message: string }> =>
-		api.delete(`/admin/categories/${id}`),
+		api.delete(`${ApiRoutes.admin.categories}/${id}`),
 
 	// Bookings
 	getAllBookings: (): Promise<
@@ -78,5 +82,5 @@ export const adminApi = {
 			status: string;
 			date: string;
 		}>
-	> => api.get("/admin/bookings"),
+	> => api.get(ApiRoutes.admin.bookings),
 };

@@ -1,4 +1,5 @@
 import axios from "axios";
+import ApiRoutes from "./api-routes";
 
 const api = axios.create({
 	baseURL: process.env.NEXT_PUBLIC_API_URL,
@@ -28,7 +29,7 @@ api.interceptors.response.use(
 
 		// Skip redirect for auth endpoints (login, register, etc.)
 		const isAuthEndpoint =
-			url.includes("/api/login") ||
+			url.includes(ApiRoutes.auth.login) ||
 			url.includes("/api/register") ||
 			url.includes("/api/forgot-password") ||
 			url.includes("/api/reset-password");

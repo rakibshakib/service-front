@@ -1,3 +1,4 @@
+import useAuthStore from "@/store/useAuthStore";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import api from "..";
@@ -10,14 +11,16 @@ const login = (data: LoginPayload): Promise<AuthResponse> => {
 
 const useLoginMutate = () => {
 	const router = useRouter();
+	const setUser = useAuthStore((s) => s.setUser);
 
 	return useMutation({
 		mutationFn: login,
 		mutationKey: ["login"],
 		onError: (err: { message?: string }) => {
-			console.log("Login error:", err);
+			console.error("Login error:", err);
 		},
 		onSuccess: (data) => {
+			setUser(data.user);
 			const redirectPath = ROLE_REDIRECTS[data.user.userType];
 			router.push(redirectPath);
 		},
