@@ -1,7 +1,9 @@
 "use client";
 
-import { Bell, Menu, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { USER_TYPES } from "@/lib/api/auth/auth.type";
+import useAuthStore from "@/store/useAuthStore";
+import { Bell, Menu, Search } from "lucide-react";
 import type { SidebarConfig } from "./sidebar-config";
 
 interface TopNavbarProps {
@@ -10,14 +12,11 @@ interface TopNavbarProps {
 }
 
 const TopNavbar = ({ config, onToggleSidebar }: TopNavbarProps) => {
+	const user = useAuthStore((s) => s.user);
 	return (
 		<header className="h-14 bg-card border-b border-border sticky top-0 z-30 px-4 sm:px-6 flex items-center justify-between">
 			<div className="flex items-center gap-4">
-				<Button
-					variant="ghost"
-					size="icon-sm"
-					onClick={onToggleSidebar}
-				>
+				<Button variant="ghost" size="icon-sm" onClick={onToggleSidebar}>
 					<Menu className="w-5 h-5" />
 				</Button>
 
@@ -32,11 +31,7 @@ const TopNavbar = ({ config, onToggleSidebar }: TopNavbarProps) => {
 			</div>
 
 			<div className="flex items-center gap-3">
-				<Button
-					variant="ghost"
-					size="icon-sm"
-					className="relative"
-				>
+				<Button variant="ghost" size="icon-sm" className="relative">
 					<Bell className="w-4 h-4" />
 					<span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-destructive" />
 				</Button>
@@ -47,14 +42,14 @@ const TopNavbar = ({ config, onToggleSidebar }: TopNavbarProps) => {
 					</div>
 					<div className="hidden lg:flex flex-col text-left">
 						<span className="text-xs font-bold text-foreground">
-							{config.role === "admin"
-								? "Platform Admin"
-								: "Vendor Manager"}
+							{user?.userType === USER_TYPES.VENDOR
+								? user?.vendor?.businessName
+								: user?.name}
 						</span>
 						<span className="text-[10px] text-muted-foreground font-medium">
-							{config.role === "admin"
-								? "admin@shebapro.com"
-								: "vendor@shebapro.com"}
+							{user?.userType === USER_TYPES.VENDOR
+								? user?.name
+								: "shebapro.com"}
 						</span>
 					</div>
 				</div>

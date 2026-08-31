@@ -1,23 +1,25 @@
 "use client";
 
-import Image from "next/image";
-import { LogOut } from "lucide-react";
+import type { UserType } from "@/lib/api/auth/auth.type";
 import useLogoutMutate from "@/lib/api/auth/useLogoutMutate";
+import { LogOut } from "lucide-react";
+import Image from "next/image";
 import SidebarItem from "./SidebarItem";
 import type { SidebarConfig } from "./sidebar-config";
 
 interface SidebarProps {
 	config: SidebarConfig;
 	isCollapsed: boolean;
+	userType?: UserType;
 }
 
-const Sidebar = ({ config, isCollapsed }: SidebarProps) => {
+const Sidebar = ({ config, isCollapsed, userType }: SidebarProps) => {
 	const Icon = config.icon;
-	const { mutate: logout, isPending } = useLogoutMutate();
+	const { mutate: logout, isPending } = useLogoutMutate(userType);
 
 	return (
 		<aside
-			className={`${isCollapsed ? "w-[70px]" : "w-64"} bg-card border-r border-border transition-all duration-300 flex flex-col justify-between shrink-0 z-20`}
+			className={`${isCollapsed ? "w-17.5" : "w-64"} bg-card border-r border-border transition-all duration-300 flex flex-col justify-between shrink-0 z-20`}
 		>
 			<div className="p-3 space-y-6">
 				{/* Logo */}

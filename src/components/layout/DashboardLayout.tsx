@@ -1,5 +1,6 @@
 "use client";
 
+import useAuthStore from "@/store/useAuthStore";
 import { useState } from "react";
 import Sidebar from "./Sidebar";
 import TopNavbar from "./TopNavbar";
@@ -12,6 +13,9 @@ interface DashboardLayoutProps {
 
 const DashboardLayout = ({ config, children }: DashboardLayoutProps) => {
 	const [isCollapsed, setIsCollapsed] = useState(false);
+	const userType = useAuthStore((s) => s.user?.userType);
+	const user = useAuthStore((s) => s.user);
+	console.log({ user });
 
 	return (
 		<div className="min-h-screen bg-muted/30 text-foreground font-sans antialiased flex flex-col">
@@ -20,7 +24,11 @@ const DashboardLayout = ({ config, children }: DashboardLayoutProps) => {
 				onToggleSidebar={() => setIsCollapsed(!isCollapsed)}
 			/>
 			<div className="flex flex-1 overflow-hidden">
-				<Sidebar config={config} isCollapsed={isCollapsed} />
+				<Sidebar
+					config={config}
+					isCollapsed={isCollapsed}
+					userType={userType}
+				/>
 				<main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
 					{children}
 				</main>
