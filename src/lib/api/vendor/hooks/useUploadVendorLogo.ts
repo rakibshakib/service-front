@@ -1,20 +1,20 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { vendorApi, UpdateVendorPayload } from "..";
+import { vendorApi } from "..";
 
-export const useUpdateVendor = () => {
+export const useUploadVendorLogo = () => {
 	const queryClient = useQueryClient();
 
 	return useMutation({
 		mutationFn: ({
 			id,
-			data,
+			file,
 		}: {
 			id: number;
-			data: UpdateVendorPayload;
-		}) => vendorApi.updateVendor(id, data),
+			file: File;
+		}) => vendorApi.uploadLogo(id, file),
 		onSuccess: (_, { id }) => {
-			queryClient.invalidateQueries({ queryKey: ["vendors"] });
 			queryClient.invalidateQueries({ queryKey: ["vendor", id] });
+			queryClient.invalidateQueries({ queryKey: ["vendors"] });
 		},
 	});
 };

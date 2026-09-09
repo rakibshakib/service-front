@@ -1,7 +1,7 @@
 import api from "../index";
 import ApiRoutes from "../api-routes";
 
-// Vendor status enum
+// Enums
 export const VENDOR_STATUS = {
 	PENDING: "PENDING",
 	APPROVED: "APPROVED",
@@ -9,6 +9,14 @@ export const VENDOR_STATUS = {
 } as const;
 
 export type VendorStatus = (typeof VENDOR_STATUS)[keyof typeof VENDOR_STATUS];
+
+export const OFFER_TYPE = {
+	PERCENTAGE: "PERCENTAGE",
+	FLAT: "FLAT",
+	TEXT: "TEXT",
+} as const;
+
+export type OfferType = (typeof OFFER_TYPE)[keyof typeof OFFER_TYPE];
 
 // Vendor type based on API response
 export interface Vendor {
@@ -23,25 +31,58 @@ export interface Vendor {
 	responseTime: string;
 	logoUrl: string | null;
 	logoPath: string | null;
-	vendorOffer: {
-		id: number;
-		vendorId: number;
-		type: string;
-		title: string;
-		description: string | null;
-		value: string;
-		startDate: string;
-		hasExpireDate: boolean;
-		endDate: string | null;
-		isActive: boolean;
-		createdAt: string;
-		updatedAt: string;
-	} | null;
+	vendorOffer: VendorOffer | null;
 	name: string;
 	phone: string | null;
+	email?: string;
+	vendorCategories?: VendorCategory[];
 }
 
-// Paginated response meta
+// Vendor offer type
+export interface VendorOffer {
+	id: number;
+	vendorId: number;
+	type: OfferType;
+	title: string;
+	description: string | null;
+	value: string;
+	startDate: string;
+	hasExpireDate: boolean;
+	endDate: string | null;
+	isActive: boolean;
+	createdAt: string;
+	updatedAt: string;
+}
+
+// Vendor category type
+export interface VendorCategory {
+	id: number;
+	vendorId: number;
+	categoryId: number;
+	category?: {
+		id: number;
+		name: string;
+		icon: string | null;
+	};
+}
+
+// Vendor service type
+export interface VendorService {
+	id: number;
+	vendorId: number;
+	serviceId: number;
+	isActive: boolean;
+	service?: {
+		id: number;
+		name: string;
+		price: number;
+		description: string;
+		duration: string;
+		categoryId: number;
+	};
+}
+
+// Pagination meta
 export interface PaginationMeta {
 	total: number;
 	page: number;
@@ -50,35 +91,110 @@ export interface PaginationMeta {
 }
 
 // Paginated response
-export interface VendorListResponse {
-	data: Vendor[];
+export interface PaginatedResponse<T> {
+	data: T[];
 	meta: PaginationMeta;
 }
 
-// Payload for updating vendor
+// Payloads
 export interface UpdateVendorPayload {
-	status?: VendorStatus;
+	name?: string;
+	businessName?: string;
+	address?: string;
+	phone?: string;
+	password?: string;
+	confirmPassword?: string;
+}
+
+export interface UpdateVendorStatusPayload {
+	isActive: boolean;
+}
+
+export interface UpdateVendorApprovalPayload {
+	status: VendorStatus;
+}
+
+export interface ToggleVendorServicePayload {
+	activeServicesId?: number[];
+	inActiveServicesId?: number[];
+}
+
+export interface VendorOfferPayload {
+	type?: OfferType;
+	title?: string;
+	description?: string;
+	value?: number;
+	startDate?: string;
+	hasExpireDate?: boolean;
+	endDate?: string;
 	isActive?: boolean;
 }
 
-// Pagination params
+export interface UpdateVendorOfferStatusPayload {
+	isActive: boolean;
+}
+
 export interface VendorPaginationParams {
 	page?: number;
 	limit?: number;
 }
 
+// API functions
 export const vendorApi = {
-	// Get vendors with pagination
-	getVendors: (params?: VendorPaginationParams): Promise<VendorListResponse> =>
+	// List vendors (paginated)
+	getVendors: (params?: VendorPaginationParams): Promise<PaginatedResponse<Vendor>> =>
 		api.get(ApiRoutes.vendor.root, { params }),
 
 	// Get single vendor
-	getVendor: (userId: number): Promise<Vendor> =>
-		api.get(`${ApiRoutes.vendor.root}/${userId}`),
+	getVendor: (id: number): Promise<Vendor> =>
+		api.get(`${ApiRoutes.vendor.root}/${id}`),
 
-	// Update vendor status
-	updateVendorStatus: (
-		userId: number,
-		data: UpdateVendorPayload,
-	): Promise<Vendor> => api.put(`${ApiRoutes.vendor.root}/${userId}`, data),
+	// Update vendor info
+	updateVendor: (id: number, data: UpdateVendorPayload): Promise<Vendor> =>
+		api.patch(`${ApiRoutes.vendor.root}/${id}`, data),
+
+	// Delete vendor
+	deleteVendor: (id: number): Promise<{ message: string }> =>
+		api.delete(`${ApiRoutes.vendor.root}/${id}`),
+
+	// Update vendor active status
+	updateVendorStatus: (id: number, data: UpdateVendorStatusPayload): Promise<Vendor> =>
+		api.patch(ApiRoutes.vendor.status(id), data),
+
+	// Update vendor approval status
+	updateVendorApproval: (id: number, data: UpdateVendorApprovalPayload): Promise<Vendor> =>
+		api.patch(ApiRoutes.vendor.approval(id), data),
+
+	// Get vendor services
+	getVendorServices: (id: number, params?: VendorPaginationParams): Promise<PaginatedResponse<VendorService>> =>
+		api.get(ApiRoutes.vendor.services(id), { params }),
+
+	// Toggle vendor service status
+	toggleVendorService: (id: number, data: ToggleVendorServicePayload): Promise<VendorService> =>
+		api.patch(ApiRoutes.vendor.services(id), data),
+
+	// Upload vendor logo
+	uploadLogo: (id: number, file: File): Promise<Vendor> => {
+		const formData = new FormData();
+		formData.append("file", file);
+		return api.patch(ApiRoutes.vendor.logo(id), formData, {
+			headers: { "Content-Type": "multipart/form-data" },
+		});
+	},
+
+	// Update vendor offer
+	updateVendorOffer: (id: number, data: VendorOfferPayload): Promise<VendorOffer> =>
+		api.patch(ApiRoutes.vendor.offers(id), data),
+
+	// Delete vendor offer
+	deleteVendorOffer: (id: number): Promise<{ message: string }> =>
+		api.delete(ApiRoutes.vendor.offers(id)),
+
+	// Update vendor offer status
+	updateVendorOfferStatus: (id: number, data: UpdateVendorOfferStatusPayload): Promise<VendorOffer> =>
+		api.patch(ApiRoutes.vendor.offerStatus(id), data),
+
+	// Update vendor categories
+	updateVendorCategories: (id: number, categoryIds: number[]): Promise<VendorCategory> =>
+		api.patch(ApiRoutes.vendor.categories(id), { categoryIds }),
 };

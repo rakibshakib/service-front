@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,7 +21,11 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { VENDOR_STATUS, type VendorStatus } from "@/lib/api/vendor";
-import { useUpdateVendor, useVendors } from "@/lib/api/vendor/hooks";
+import {
+	useUpdateVendorStatus,
+	useUpdateVendorApproval,
+	useVendors,
+} from "@/lib/api/vendor/hooks";
 import {
 	Building2,
 	ChevronLeft,
@@ -40,21 +45,37 @@ const statusColors: Record<VendorStatus, string> = {
 const PAGE_SIZE = 10;
 
 export default function AdminVendorsPage() {
+	const router = useRouter();
 	const [page, setPage] = useState(1);
 	const [search, setSearch] = useState("");
+	const [updatingStatusId, setUpdatingStatusId] = useState<number | null>(null);
+	const [updatingActiveId, setUpdatingActiveId] = useState<number | null>(null);
 
 	const { data, isLoading } = useVendors({ page, limit: PAGE_SIZE });
-	const { mutate: updateVendor, isPending } = useUpdateVendor();
+	const { mutate: updateStatus } = useUpdateVendorStatus();
+	const { mutate: updateApproval } = useUpdateVendorApproval();
 
 	const vendors = data?.data ?? [];
 	const meta = data?.meta;
 
 	const handleStatusChange = (userId: number, status: VendorStatus) => {
-		updateVendor({ userId, data: { status } });
+		setUpdatingStatusId(userId);
+		updateApproval(
+			{ id: userId, data: { status } },
+			{ onSettled: () => setUpdatingStatusId(null) },
+		);
 	};
 
 	const handleActiveToggle = (userId: number, isActive: boolean) => {
-		updateVendor({ userId, data: { isActive } });
+		setUpdatingActiveId(userId);
+		updateStatus(
+			{ id: userId, data: { isActive } },
+			{ onSettled: () => setUpdatingActiveId(null) },
+		);
+	};
+
+	const handleRowClick = (userId: number) => {
+		router.push(`/admin/vendors/${userId}`);
 	};
 
 	return (
@@ -94,16 +115,10 @@ export default function AdminVendorsPage() {
 									Vendor
 								</TableHead>
 								<TableHead className="font-bold text-foreground">
-									Phone
-								</TableHead>
-								<TableHead className="font-bold text-foreground">
 									Address
 								</TableHead>
 								<TableHead className="font-bold text-foreground">
 									Rating
-								</TableHead>
-								<TableHead className="font-bold text-foreground">
-									Response
 								</TableHead>
 								<TableHead className="font-bold text-foreground">
 									Status
@@ -116,81 +131,88 @@ export default function AdminVendorsPage() {
 						<TableBody>
 							{vendors.length === 0 ? (
 								<TableRow>
-									<TableCell colSpan={7} className="text-center py-10">
+									<TableCell colSpan={5} className="text-center py-10">
 										<p className="text-sm text-muted-foreground">
 											No vendors found
 										</p>
 									</TableCell>
 								</TableRow>
 							) : (
-								vendors.map((vendor) => (
-									<TableRow
-										key={vendor.userId}
-										className="hover:bg-muted/30"
-									>
-										<TableCell>
-											<div className="flex items-center gap-3">
-												<div className="relative w-9 h-9 rounded-lg bg-primary text-primary-foreground font-bold text-xs flex items-center justify-center overflow-hidden">
-													<Image
-														src={
-															vendor.logoUrl ||
-															`https://ui-avatars.com/api/?name=${encodeURIComponent(vendor.businessName)}&background=12544F&color=fff&bold=true`
-														}
-														alt={vendor.businessName}
-														fill
-														sizes="36px"
-														className="object-cover"
-													/>
+								vendors.map((vendor) => {
+									const isStatusUpdating = updatingStatusId === vendor.userId;
+									const isActiveUpdating = updatingActiveId === vendor.userId;
+									return (
+										<TableRow
+											key={vendor.userId}
+											className="hover:bg-muted/30 cursor-pointer"
+											onClick={() => handleRowClick(vendor.userId)}
+										>
+											<TableCell>
+												<div className="flex items-center gap-3">
+													<div className="relative w-9 h-9 rounded-lg bg-primary text-primary-foreground font-bold text-xs flex items-center justify-center overflow-hidden shrink-0">
+														<Image
+															src={
+																vendor.logoUrl ||
+																`https://ui-avatars.com/api/?name=${encodeURIComponent(vendor.businessName)}&background=12544F&color=fff&bold=true`
+															}
+															alt={vendor.businessName}
+															fill
+															sizes="36px"
+															className="object-cover"
+														/>
+													</div>
+													<div className="min-w-0">
+														<p className="text-sm font-bold text-foreground truncate">
+															{vendor.businessName}
+														</p>
+														<p className="text-[11px] text-muted-foreground">
+															{vendor.name}
+														</p>
+														<p className="text-[11px] text-muted-foreground">
+															{vendor.phone || "-"}
+														</p>
+														<p className="text-[11px] text-muted-foreground truncate max-w-[200px]">
+															{vendor.email || "-"}
+														</p>
+													</div>
 												</div>
-												<div className="min-w-0">
-													<p className="text-sm font-bold text-foreground truncate">
-														{vendor.businessName}
-													</p>
-													<p className="text-[11px] text-muted-foreground">
-														{vendor.name}
-													</p>
-												</div>
-											</div>
-										</TableCell>
-										<TableCell className="text-xs text-muted-foreground">
-											{vendor.phone || "-"}
-										</TableCell>
-										<TableCell className="text-xs text-muted-foreground max-w-[150px] truncate">
-											{vendor.address}
-										</TableCell>
-										<TableCell>
-											<span className="flex items-center gap-1 text-xs font-bold text-amber-500">
-												<Star className="w-3 h-3 fill-amber-400" />
-												{Number(vendor.rating) || "0.0"}
-											</span>
-										</TableCell>
-										<TableCell className="text-xs text-muted-foreground">
-											{vendor.responseTime}
-										</TableCell>
-										<TableCell>
-											<Select
-												value={vendor.status}
-												onValueChange={(value) =>
-													handleStatusChange(
-														vendor.userId,
-														value as VendorStatus,
-													)
-												}
-												disabled={isPending}
-											>
-												<SelectTrigger className="w-[120px] h-8 text-[11px] font-bold border-0 bg-transparent focus:ring-0">
-													<SelectValue>
-														<Badge
-															variant="outline"
-															className={`${statusColors[vendor.status]} border font-bold text-[10px] px-2 py-0.5`}
-														>
-															{vendor.status}
-														</Badge>
-													</SelectValue>
-												</SelectTrigger>
-												<SelectContent>
-													{Object.values(VENDOR_STATUS).map(
-														(status) => (
+											</TableCell>
+											<TableCell className="text-xs text-muted-foreground max-w-[150px] truncate">
+												{vendor.address}
+											</TableCell>
+											<TableCell>
+												<span className="flex items-center gap-1 text-xs font-bold text-amber-500">
+													<Star className="w-3 h-3 fill-amber-400" />
+													{Number(vendor.rating) || "0.0"}
+												</span>
+											</TableCell>
+											<TableCell onClick={(e) => e.stopPropagation()}>
+												<Select
+													value={vendor.status}
+													onValueChange={(value) =>
+														handleStatusChange(
+															vendor.userId,
+															value as VendorStatus,
+														)
+													}
+													disabled={isStatusUpdating}
+												>
+													<SelectTrigger className="w-[120px] h-8 text-[11px] font-bold border-0 bg-transparent focus:ring-0">
+														<SelectValue>
+															{isStatusUpdating ? (
+																<Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
+															) : (
+																<Badge
+																	variant="outline"
+																	className={`${statusColors[vendor.status]} border font-bold text-[10px] px-2 py-0.5`}
+																>
+																	{vendor.status}
+																</Badge>
+															)}
+														</SelectValue>
+													</SelectTrigger>
+													<SelectContent>
+														{Object.values(VENDOR_STATUS).map((status) => (
 															<SelectItem
 																key={status}
 																value={status}
@@ -203,22 +225,25 @@ export default function AdminVendorsPage() {
 																	{status}
 																</Badge>
 															</SelectItem>
-														),
-													)}
-												</SelectContent>
-											</Select>
-										</TableCell>
-										<TableCell>
-											<Switch
-												checked={vendor.isActive}
-												onCheckedChange={(checked) =>
-													handleActiveToggle(vendor.userId, checked)
-												}
-												disabled={isPending}
-											/>
-										</TableCell>
-									</TableRow>
-								))
+														))}
+													</SelectContent>
+												</Select>
+											</TableCell>
+											<TableCell onClick={(e) => e.stopPropagation()}>
+												{isActiveUpdating ? (
+													<Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+												) : (
+													<Switch
+														checked={vendor.isActive}
+														onCheckedChange={(checked) =>
+															handleActiveToggle(vendor.userId, checked)
+														}
+													/>
+												)}
+											</TableCell>
+										</TableRow>
+									);
+								})
 							)}
 						</TableBody>
 					</Table>

@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { vendorApi, UpdateVendorPayload } from "..";
+import { vendorApi, UpdateVendorApprovalPayload } from "..";
 
-export const useUpdateVendor = () => {
+export const useUpdateVendorApproval = () => {
 	const queryClient = useQueryClient();
 
 	return useMutation({
@@ -10,8 +10,8 @@ export const useUpdateVendor = () => {
 			data,
 		}: {
 			id: number;
-			data: UpdateVendorPayload;
-		}) => vendorApi.updateVendor(id, data),
+			data: UpdateVendorApprovalPayload;
+		}) => vendorApi.updateVendorApproval(id, data),
 		onSuccess: (_, { id }) => {
 			queryClient.invalidateQueries({ queryKey: ["vendors"] });
 			queryClient.invalidateQueries({ queryKey: ["vendor", id] });
