@@ -23,8 +23,36 @@ export interface Vendor {
 	responseTime: string;
 	logoUrl: string | null;
 	logoPath: string | null;
+	vendorOffer: {
+		id: number;
+		vendorId: number;
+		type: string;
+		title: string;
+		description: string | null;
+		value: string;
+		startDate: string;
+		hasExpireDate: boolean;
+		endDate: string | null;
+		isActive: boolean;
+		createdAt: string;
+		updatedAt: string;
+	} | null;
 	name: string;
-	phone: string;
+	phone: string | null;
+}
+
+// Paginated response meta
+export interface PaginationMeta {
+	total: number;
+	page: number;
+	limit: number;
+	totalPages: number;
+}
+
+// Paginated response
+export interface VendorListResponse {
+	data: Vendor[];
+	meta: PaginationMeta;
 }
 
 // Payload for updating vendor
@@ -33,9 +61,16 @@ export interface UpdateVendorPayload {
 	isActive?: boolean;
 }
 
+// Pagination params
+export interface VendorPaginationParams {
+	page?: number;
+	limit?: number;
+}
+
 export const vendorApi = {
-	// Get all vendors
-	getVendors: (): Promise<Vendor[]> => api.get(ApiRoutes.vendor.root),
+	// Get vendors with pagination
+	getVendors: (params?: VendorPaginationParams): Promise<VendorListResponse> =>
+		api.get(ApiRoutes.vendor.root, { params }),
 
 	// Get single vendor
 	getVendor: (userId: number): Promise<Vendor> =>

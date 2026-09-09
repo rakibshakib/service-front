@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
 	Select,
 	SelectContent,
@@ -19,9 +21,15 @@ import {
 } from "@/components/ui/table";
 import { VENDOR_STATUS, type VendorStatus } from "@/lib/api/vendor";
 import { useUpdateVendor, useVendors } from "@/lib/api/vendor/hooks";
-import { Building2, Loader2, Search, Star } from "lucide-react";
+import {
+	Building2,
+	ChevronLeft,
+	ChevronRight,
+	Loader2,
+	Search,
+	Star,
+} from "lucide-react";
 import Image from "next/image";
-import { useState } from "react";
 
 const statusColors: Record<VendorStatus, string> = {
 	PENDING: "bg-amber-50 text-amber-700 border-amber-200",
@@ -29,16 +37,17 @@ const statusColors: Record<VendorStatus, string> = {
 	REJECTED: "bg-red-50 text-red-700 border-red-200",
 };
 
+const PAGE_SIZE = 10;
+
 export default function AdminVendorsPage() {
+	const [page, setPage] = useState(1);
 	const [search, setSearch] = useState("");
-	const { data: vendors = [], isLoading } = useVendors();
+
+	const { data, isLoading } = useVendors({ page, limit: PAGE_SIZE });
 	const { mutate: updateVendor, isPending } = useUpdateVendor();
 
-	const filteredVendors = vendors.filter(
-		(v) =>
-			v.businessName.toLowerCase().includes(search.toLowerCase()) ||
-			v.name.toLowerCase().includes(search.toLowerCase()),
-	);
+	const vendors = data?.data ?? [];
+	const meta = data?.meta;
 
 	const handleStatusChange = (userId: number, status: VendorStatus) => {
 		updateVendor({ userId, data: { status } });
@@ -105,7 +114,7 @@ export default function AdminVendorsPage() {
 							</TableRow>
 						</TableHeader>
 						<TableBody>
-							{filteredVendors.length === 0 ? (
+							{vendors.length === 0 ? (
 								<TableRow>
 									<TableCell colSpan={7} className="text-center py-10">
 										<p className="text-sm text-muted-foreground">
@@ -114,7 +123,7 @@ export default function AdminVendorsPage() {
 									</TableCell>
 								</TableRow>
 							) : (
-								filteredVendors.map((vendor) => (
+								vendors.map((vendor) => (
 									<TableRow
 										key={vendor.userId}
 										className="hover:bg-muted/30"
@@ -144,9 +153,9 @@ export default function AdminVendorsPage() {
 											</div>
 										</TableCell>
 										<TableCell className="text-xs text-muted-foreground">
-											{vendor.phone}
+											{vendor.phone || "-"}
 										</TableCell>
-										<TableCell className="text-xs text-muted-foreground max-w-37.5 truncate">
+										<TableCell className="text-xs text-muted-foreground max-w-[150px] truncate">
 											{vendor.address}
 										</TableCell>
 										<TableCell>
@@ -169,7 +178,7 @@ export default function AdminVendorsPage() {
 												}
 												disabled={isPending}
 											>
-												<SelectTrigger className="w-30 h-8 text-[11px] font-bold border-0 bg-transparent focus:ring-0">
+												<SelectTrigger className="w-[120px] h-8 text-[11px] font-bold border-0 bg-transparent focus:ring-0">
 													<SelectValue>
 														<Badge
 															variant="outline"
@@ -203,10 +212,7 @@ export default function AdminVendorsPage() {
 											<Switch
 												checked={vendor.isActive}
 												onCheckedChange={(checked) =>
-													handleActiveToggle(
-														vendor.userId,
-														checked,
-													)
+													handleActiveToggle(vendor.userId, checked)
 												}
 												disabled={isPending}
 											/>
@@ -216,6 +222,87 @@ export default function AdminVendorsPage() {
 							)}
 						</TableBody>
 					</Table>
+
+					{/* Pagination */}
+					{meta && meta.totalPages > 1 && (
+						<div className="flex items-center justify-between px-4 py-3 border-t border-border">
+							<p className="text-xs text-muted-foreground">
+								Showing{" "}
+								<span className="font-bold text-foreground">
+									{(meta.page - 1) * meta.limit + 1}
+								</span>{" "}
+								to{" "}
+								<span className="font-bold text-foreground">
+									{Math.min(meta.page * meta.limit, meta.total)}
+								</span>{" "}
+								of{" "}
+								<span className="font-bold text-foreground">{meta.total}</span>{" "}
+								vendors
+							</p>
+							<div className="flex items-center gap-2">
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() => setPage((p) => Math.max(1, p - 1))}
+									disabled={page === 1}
+									className="h-8 px-3 text-xs font-bold"
+								>
+									<ChevronLeft className="w-3.5 h-3.5 mr-1" />
+									Previous
+								</Button>
+								<div className="flex items-center gap-1">
+									{Array.from({ length: meta.totalPages }, (_, i) => i + 1)
+										.filter(
+											(p) =>
+												p === 1 ||
+												p === meta.totalPages ||
+												Math.abs(p - page) <= 1,
+										)
+										.reduce<(number | "ellipsis")[]>((acc, p, i, arr) => {
+											if (i > 0 && p - (arr[i - 1] as number) > 1) {
+												acc.push("ellipsis");
+											}
+											acc.push(p);
+											return acc;
+										}, [])
+										.map((item, i) =>
+											item === "ellipsis" ? (
+												<span
+													key={`ellipsis-${i}`}
+													className="px-1 text-muted-foreground"
+												>
+													...
+												</span>
+											) : (
+												<button
+													key={item}
+													onClick={() => setPage(item)}
+													className={`h-8 min-w-8 px-2 rounded-lg text-xs font-bold transition-colors ${
+														page === item
+															? "bg-primary text-primary-foreground"
+															: "bg-card border border-border text-muted-foreground hover:bg-muted"
+													}`}
+												>
+													{item}
+												</button>
+											),
+										)}
+								</div>
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() =>
+										setPage((p) => Math.min(meta.totalPages, p + 1))
+									}
+									disabled={page === meta.totalPages}
+									className="h-8 px-3 text-xs font-bold"
+								>
+									Next
+									<ChevronRight className="w-3.5 h-3.5 ml-1" />
+								</Button>
+							</div>
+						</div>
+					)}
 				</div>
 			)}
 		</div>

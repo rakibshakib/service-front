@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { vendorApi } from "..";
+import { vendorApi, VendorPaginationParams } from "..";
 
-export const useVendors = () => {
+export const useVendors = (params?: VendorPaginationParams) => {
 	return useQuery({
-		queryKey: ["vendors"],
-		queryFn: vendorApi.getVendors,
+		queryKey: ["vendors", params],
+		queryFn: () => vendorApi.getVendors(params),
 	});
 };
