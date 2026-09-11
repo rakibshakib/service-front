@@ -1,8 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import { useFormik } from "formik";
-import { toast } from "sonner";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -15,7 +12,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
 import {
 	Sheet,
 	SheetContent,
@@ -24,6 +20,7 @@ import {
 	SheetHeader,
 	SheetTitle,
 } from "@/components/ui/sheet";
+import { Switch } from "@/components/ui/switch";
 import {
 	Table,
 	TableBody,
@@ -32,14 +29,15 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import type { Category } from "@/lib/api/category";
 import {
 	useCategories,
 	useCreateCategory,
+	useDeleteCategory,
 	useUpdateCategory,
 	useUpdateCategoryStatus,
-	useDeleteCategory,
 } from "@/lib/api/category/hooks";
-import type { Category } from "@/lib/api/category";
+import { useFormik } from "formik";
 import {
 	ChevronLeft,
 	ChevronRight,
@@ -51,21 +49,32 @@ import {
 	Trash2,
 } from "lucide-react";
 import Image from "next/image";
+import { useState } from "react";
+import { toast } from "sonner";
 
 const PAGE_SIZE = 10;
 
 export default function AdminCategoriesPage() {
 	const [page, setPage] = useState(1);
 	const [isCreateOpen, setIsCreateOpen] = useState(false);
-	const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-	const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
-	const [updatingStatusId, setUpdatingStatusId] = useState<number | null>(null);
+	const [editingCategory, setEditingCategory] = useState<Category | null>(
+		null,
+	);
+	const [deletingCategory, setDeletingCategory] = useState<Category | null>(
+		null,
+	);
+	const [updatingStatusId, setUpdatingStatusId] = useState<number | null>(
+		null,
+	);
 
 	const { data, isLoading } = useCategories({ page, limit: PAGE_SIZE });
-	const { mutate: createCategory, isPending: isCreating } = useCreateCategory();
-	const { mutate: updateCategory, isPending: isUpdating } = useUpdateCategory();
+	const { mutate: createCategory, isPending: isCreating } =
+		useCreateCategory();
+	const { mutate: updateCategory, isPending: isUpdating } =
+		useUpdateCategory();
 	const { mutate: updateStatus } = useUpdateCategoryStatus();
-	const { mutate: deleteCategory, isPending: isDeleting } = useDeleteCategory();
+	const { mutate: deleteCategory, isPending: isDeleting } =
+		useDeleteCategory();
 
 	const categories = data?.data ?? [];
 	const meta = data?.meta;
@@ -76,7 +85,9 @@ export default function AdminCategoriesPage() {
 			{ id, data: { isActive } },
 			{
 				onSuccess: () =>
-					toast.success(isActive ? "Category activated" : "Category deactivated"),
+					toast.success(
+						isActive ? "Category activated" : "Category deactivated",
+					),
 				onError: (error: { message?: string }) =>
 					toast.error(error?.message || "Failed to update status"),
 				onSettled: () => setUpdatingStatusId(null),
@@ -158,7 +169,10 @@ export default function AdminCategoriesPage() {
 								categories.map((cat) => {
 									const isStatusUpdating = updatingStatusId === cat.id;
 									return (
-										<TableRow key={cat.id} className="hover:bg-muted/30">
+										<TableRow
+											key={cat.id}
+											className="hover:bg-muted/30"
+										>
 											<TableCell>
 												<div className="flex items-center gap-3">
 													{cat.imageUrl ? (
@@ -181,7 +195,7 @@ export default function AdminCategoriesPage() {
 													</p>
 												</div>
 											</TableCell>
-											<TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
+											<TableCell className="text-xs text-muted-foreground max-w-50 truncate">
 												{cat.description || "-"}
 											</TableCell>
 											<TableCell className="text-sm font-bold text-foreground">
@@ -190,7 +204,9 @@ export default function AdminCategoriesPage() {
 											<TableCell className="text-sm font-bold text-foreground">
 												{cat.totalVendors || 0}
 											</TableCell>
-											<TableCell onClick={(e) => e.stopPropagation()}>
+											<TableCell
+												onClick={(e) => e.stopPropagation()}
+											>
 												{isStatusUpdating ? (
 													<Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
 												) : (
@@ -207,14 +223,18 @@ export default function AdminCategoriesPage() {
 													<Button
 														variant="ghost"
 														size="icon-sm"
-														onClick={() => setEditingCategory(cat)}
+														onClick={() =>
+															setEditingCategory(cat)
+														}
 													>
 														<Pencil className="w-4 h-4" />
 													</Button>
 													<Button
 														variant="ghost"
 														size="icon-sm"
-														onClick={() => setDeletingCategory(cat)}
+														onClick={() =>
+															setDeletingCategory(cat)
+														}
 														className="text-destructive hover:text-destructive"
 													>
 														<Trash2 className="w-4 h-4" />
@@ -241,7 +261,9 @@ export default function AdminCategoriesPage() {
 									{Math.min(meta.page * meta.limit, meta.total)}
 								</span>{" "}
 								of{" "}
-								<span className="font-bold text-foreground">{meta.total}</span>{" "}
+								<span className="font-bold text-foreground">
+									{meta.total}
+								</span>{" "}
 								categories
 							</p>
 							<div className="flex items-center gap-2">
@@ -256,20 +278,29 @@ export default function AdminCategoriesPage() {
 									Previous
 								</Button>
 								<div className="flex items-center gap-1">
-									{Array.from({ length: meta.totalPages }, (_, i) => i + 1)
+									{Array.from(
+										{ length: meta.totalPages },
+										(_, i) => i + 1,
+									)
 										.filter(
 											(p) =>
 												p === 1 ||
 												p === meta.totalPages ||
 												Math.abs(p - page) <= 1,
 										)
-										.reduce<(number | "ellipsis")[]>((acc, p, i, arr) => {
-											if (i > 0 && p - (arr[i - 1] as number) > 1) {
-												acc.push("ellipsis");
-											}
-											acc.push(p);
-											return acc;
-										}, [])
+										.reduce<(number | "ellipsis")[]>(
+											(acc, p, i, arr) => {
+												if (
+													i > 0 &&
+													p - (arr[i - 1] as number) > 1
+												) {
+													acc.push("ellipsis");
+												}
+												acc.push(p);
+												return acc;
+											},
+											[],
+										)
 										.map((item, i) =>
 											item === "ellipsis" ? (
 												<span
@@ -349,7 +380,9 @@ export default function AdminCategoriesPage() {
 									toast.success("Category updated successfully");
 								},
 								onError: (error: { message?: string }) => {
-									toast.error(error?.message || "Failed to update category");
+									toast.error(
+										error?.message || "Failed to update category",
+									);
 								},
 							},
 						)
@@ -377,7 +410,9 @@ export default function AdminCategoriesPage() {
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
-						<AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+						<AlertDialogCancel disabled={isDeleting}>
+							Cancel
+						</AlertDialogCancel>
 						<AlertDialogAction
 							onClick={handleDelete}
 							disabled={isDeleting}
@@ -481,7 +516,9 @@ function CategorySheet({
 							className="h-10 text-sm"
 						/>
 						{formik.touched.name && formik.errors.name && (
-							<p className="text-[11px] text-destructive">{formik.errors.name}</p>
+							<p className="text-[11px] text-destructive">
+								{formik.errors.name}
+							</p>
 						)}
 					</div>
 
@@ -541,7 +578,9 @@ function CategorySheet({
 							Cancel
 						</Button>
 						<Button type="submit" disabled={isPending}>
-							{isPending && <Loader2 className="w-4 h-4 animate-spin mr-1.5" />}
+							{isPending && (
+								<Loader2 className="w-4 h-4 animate-spin mr-1.5" />
+							)}
 							{initialValues ? "Update" : "Create"}
 						</Button>
 					</SheetFooter>

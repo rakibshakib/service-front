@@ -31,14 +31,6 @@ import {
 	SheetTitle,
 } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
 	OFFER_TYPE,
@@ -690,11 +682,18 @@ function VendorServicesTab({ vendorId }: { vendorId: number }) {
 							<AlertTriangle className="w-6 h-6 text-destructive" />
 						</div>
 						<AlertDialogTitle className="text-center">
-							Confirm Service {pendingToggle?.currentActive ? "Deactivation" : "Activation"}
+							Confirm Service{" "}
+							{pendingToggle?.currentActive
+								? "Deactivation"
+								: "Activation"}
 						</AlertDialogTitle>
 						<AlertDialogDescription className="text-center">
-							Are you sure you want to {pendingToggle?.currentActive ? "deactivate" : "activate"}{" "}
-							<span className="font-bold text-foreground">{pendingToggle?.serviceName}</span>?
+							Are you sure you want to{" "}
+							{pendingToggle?.currentActive ? "deactivate" : "activate"}{" "}
+							<span className="font-bold text-foreground">
+								{pendingToggle?.serviceName}
+							</span>
+							?
 							{pendingToggle?.currentActive && (
 								<span className="block mt-1 text-destructive font-medium">
 									The vendor will no longer offer this service.
@@ -728,7 +727,9 @@ function VendorServicesTab({ vendorId }: { vendorId: number }) {
 						<p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
 							Total Services
 						</p>
-						<p className="text-xl font-black text-foreground">{totalServices}</p>
+						<p className="text-xl font-black text-foreground">
+							{totalServices}
+						</p>
 					</div>
 				</div>
 				<div className="bg-card border border-border rounded-xl px-4 py-3 flex items-center gap-3">
@@ -739,7 +740,9 @@ function VendorServicesTab({ vendorId }: { vendorId: number }) {
 						<p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
 							Served
 						</p>
-						<p className="text-xl font-black text-foreground">{servedServices}</p>
+						<p className="text-xl font-black text-foreground">
+							{servedServices}
+						</p>
 					</div>
 				</div>
 				<div className="bg-card border border-border rounded-xl px-4 py-3 flex items-center gap-3">
@@ -750,7 +753,9 @@ function VendorServicesTab({ vendorId }: { vendorId: number }) {
 						<p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
 							Unserved
 						</p>
-						<p className="text-xl font-black text-foreground">{unservedServices}</p>
+						<p className="text-xl font-black text-foreground">
+							{unservedServices}
+						</p>
 					</div>
 				</div>
 			</div>
@@ -768,7 +773,9 @@ function VendorServicesTab({ vendorId }: { vendorId: number }) {
 			) : (
 				<div className="space-y-4">
 					{categories.map((group) => {
-						const servedCount = group.services.filter((s) => s.isActive).length;
+						const servedCount = group.services.filter(
+							(s) => s.isActive,
+						).length;
 						return (
 							<div
 								key={group.category.id}
@@ -826,7 +833,9 @@ function VendorServicesTab({ vendorId }: { vendorId: number }) {
 																	: "bg-red-50 text-red-700 border-red-200"
 															}`}
 														>
-															{service.isActive ? "Active" : "Inactive"}
+															{service.isActive
+																? "Active"
+																: "Inactive"}
 														</Badge>
 													</div>
 													{service.description && (
@@ -925,7 +934,11 @@ function VendorOffersTab({
 				{ id: vendorId, data: payload as VendorOfferPayload },
 				{
 					onSuccess: () => {
-						toast.success(offer ? "Offer updated successfully" : "Offer created successfully");
+						toast.success(
+							offer
+								? "Offer updated successfully"
+								: "Offer created successfully",
+						);
 						setIsSheetOpen(false);
 					},
 					onError: (error: { message?: string }) => {
@@ -953,7 +966,9 @@ function VendorOffersTab({
 			{ id: vendorId, data: { isActive } },
 			{
 				onSuccess: () => {
-					toast.success(isActive ? "Offer activated" : "Offer deactivated");
+					toast.success(
+						isActive ? "Offer activated" : "Offer deactivated",
+					);
 				},
 				onError: (error: { message?: string }) => {
 					toast.error(error?.message || "Failed to update offer status");
@@ -965,7 +980,10 @@ function VendorOffersTab({
 	return (
 		<div className="space-y-4">
 			{/* Delete Confirmation Dialog */}
-			<AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+			<AlertDialog
+				open={deleteConfirmOpen}
+				onOpenChange={setDeleteConfirmOpen}
+			>
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<div className="mx-auto w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-2">
@@ -975,8 +993,8 @@ function VendorOffersTab({
 							Delete Offer
 						</AlertDialogTitle>
 						<AlertDialogDescription className="text-center">
-							Are you sure you want to delete this offer? This action cannot be
-							undone.
+							Are you sure you want to delete this offer? This action
+							cannot be undone.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
@@ -1016,7 +1034,10 @@ function VendorOffersTab({
 								name="type"
 								value={formik.values.type}
 								onChange={(e) =>
-									formik.setFieldValue("type", e.target.value as OfferType)
+									formik.setFieldValue(
+										"type",
+										e.target.value as OfferType,
+									)
 								}
 								className="flex h-10 w-full items-center justify-between rounded-lg border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring cursor-pointer"
 							>
@@ -1058,7 +1079,11 @@ function VendorOffersTab({
 										}
 										className={`h-10 ${formik.values.type === "FLAT" ? "pl-8" : ""}`}
 										min="0"
-										max={formik.values.type === "PERCENTAGE" ? "100" : undefined}
+										max={
+											formik.values.type === "PERCENTAGE"
+												? "100"
+												: undefined
+										}
 									/>
 									{formik.values.type === "PERCENTAGE" && (
 										<span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-bold">
@@ -1067,7 +1092,9 @@ function VendorOffersTab({
 									)}
 								</div>
 								{formik.errors.value && (
-									<p className="text-xs text-destructive">{formik.errors.value}</p>
+									<p className="text-xs text-destructive">
+										{formik.errors.value}
+									</p>
 								)}
 							</div>
 						)}
@@ -1086,7 +1113,9 @@ function VendorOffersTab({
 									className="h-10"
 								/>
 								{formik.errors.title && (
-									<p className="text-xs text-destructive">{formik.errors.title}</p>
+									<p className="text-xs text-destructive">
+										{formik.errors.title}
+									</p>
 								)}
 							</div>
 						)}
@@ -1167,7 +1196,9 @@ function VendorOffersTab({
 							</Button>
 							<Button
 								type="submit"
-								disabled={isPending || Object.keys(formik.errors).length > 0}
+								disabled={
+									isPending || Object.keys(formik.errors).length > 0
+								}
 								className="h-10"
 							>
 								{isPending ? (
