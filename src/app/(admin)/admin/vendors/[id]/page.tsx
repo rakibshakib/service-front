@@ -22,6 +22,14 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import {
+	Sheet,
+	SheetContent,
+	SheetDescription,
+	SheetFooter,
+	SheetHeader,
+	SheetTitle,
+} from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
 import {
 	Table,
@@ -33,8 +41,11 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+	OFFER_TYPE,
 	VENDOR_STATUS,
+	type OfferType,
 	type Vendor,
+	type VendorOfferPayload,
 	type VendorStatus,
 } from "@/lib/api/vendor";
 import {
@@ -43,6 +54,7 @@ import {
 	useUpdateVendor,
 	useUpdateVendorApproval,
 	useUpdateVendorOffer,
+	useUpdateVendorOfferStatus,
 	useUpdateVendorStatus,
 	useUploadVendorCover,
 	useUploadVendorLogo,
@@ -56,12 +68,14 @@ import {
 	Building2,
 	Calendar,
 	Copy,
+	Gift,
 	Layers,
 	Loader2,
 	Mail,
 	MapPin,
 	Pencil,
 	Phone,
+	Plus,
 	Save,
 	Star,
 	Tag,
@@ -858,120 +872,488 @@ function VendorOffersTab({
 	const { mutate: deleteOffer, isPending: isDeleting } =
 		useDeleteVendorOffer();
 	const { mutate: updateOfferStatus, isPending: isStatusPending } =
-		useUpdateVendorOffer();
+		useUpdateVendorOfferStatus();
+
+	const [isSheetOpen, setIsSheetOpen] = useState(false);
+	const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
 	const isPending = isUpdating || isDeleting || isStatusPending;
 	const offer = vendor.vendorOffer;
 
-	const handleDelete = () => {
-		if (offer) {
-			deleteOffer(vendorId);
-		}
-	};
+	const formik = useFormik({
+		enableReinitialize: true,
+		initialValues: {
+			type: (offer?.type || "PERCENTAGE") as OfferType,
+			title: offer?.title || "",
+			description: offer?.description || "",
+			value: offer?.value || "",
+			startDate: offer?.startDate
+				? new Date(offer.startDate).toISOString().split("T")[0]
+				: new Date().toISOString().split("T")[0],
+			hasExpireDate: offer?.hasExpireDate || false,
+			endDate: offer?.endDate
+				? new Date(offer.endDate).toISOString().split("T")[0]
+				: "",
+		},
+		validate: (values) => {
+			const errors: Record<string, string> = {};
+			if (values.type !== "TEXT" && !values.value) {
+				errors.value = "Value is required";
+			}
+			if (values.type === "TEXT" && !values.title) {
+				errors.title = "Title is required";
+			}
+			if (!values.startDate) {
+				errors.startDate = "Start date is required";
+			}
+			return errors;
+		},
+		onSubmit: (values) => {
+			const payload: Record<string, unknown> = {
+				type: values.type,
+				description: values.description,
+				startDate: values.startDate,
+				hasExpireDate: values.hasExpireDate,
+				endDate: values.endDate,
+			};
+			if (values.type === "TEXT") {
+				payload.title = values.title;
+			} else {
+				payload.value = Number(values.value);
+			}
+			updateOffer(
+				{ id: vendorId, data: payload as VendorOfferPayload },
+				{
+					onSuccess: () => {
+						toast.success(offer ? "Offer updated successfully" : "Offer created successfully");
+						setIsSheetOpen(false);
+					},
+					onError: (error: { message?: string }) => {
+						toast.error(error?.message || "Failed to save offer");
+					},
+				},
+			);
+		},
+	});
 
-	const handleStatusToggle = (isActive: boolean) => {
-		updateOfferStatus({
-			id: vendorId,
-			data: { isActive },
+	const handleDelete = () => {
+		deleteOffer(vendorId, {
+			onSuccess: () => {
+				toast.success("Offer deleted successfully");
+				setDeleteConfirmOpen(false);
+			},
+			onError: (error: { message?: string }) => {
+				toast.error(error?.message || "Failed to delete offer");
+			},
 		});
 	};
 
+	const handleStatusToggle = (isActive: boolean) => {
+		updateOfferStatus(
+			{ id: vendorId, data: { isActive } },
+			{
+				onSuccess: () => {
+					toast.success(isActive ? "Offer activated" : "Offer deactivated");
+				},
+				onError: (error: { message?: string }) => {
+					toast.error(error?.message || "Failed to update offer status");
+				},
+			},
+		);
+	};
+
 	return (
-		<div className="bg-card rounded-2xl border border-border shadow-sm p-6">
-			<div className="flex items-center justify-between mb-6">
-				<h2 className="text-lg font-black text-foreground">
-					Offer & Discount
-				</h2>
-				{offer && (
-					<div className="flex items-center gap-2">
-						<span className="text-xs font-bold text-muted-foreground">
-							{offer.isActive ? "Active" : "Inactive"}
-						</span>
-						<Switch
-							checked={offer.isActive}
-							onCheckedChange={handleStatusToggle}
-							disabled={isPending}
-						/>
-						<Button
-							variant="destructive"
-							size="sm"
+		<div className="space-y-4">
+			{/* Delete Confirmation Dialog */}
+			<AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<div className="mx-auto w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-2">
+							<AlertTriangle className="w-6 h-6 text-destructive" />
+						</div>
+						<AlertDialogTitle className="text-center">
+							Delete Offer
+						</AlertDialogTitle>
+						<AlertDialogDescription className="text-center">
+							Are you sure you want to delete this offer? This action cannot be
+							undone.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Cancel</AlertDialogCancel>
+						<AlertDialogAction
 							onClick={handleDelete}
-							disabled={isPending}
-							className="h-8 px-3 text-xs font-bold"
+							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
 						>
-							<Trash2 className="w-3.5 h-3.5 mr-1.5" />
 							Delete
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+
+			{/* Create/Edit Offer Sheet */}
+			<Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+				<SheetContent className="w-full sm:max-w-lg overflow-y-auto custom-scrollbar">
+					<SheetHeader>
+						<SheetTitle className="flex items-center gap-2">
+							<Gift className="w-5 h-5 text-primary" />
+							{offer ? "Edit Offer" : "Create Offer"}
+						</SheetTitle>
+						<SheetDescription>
+							{offer
+								? "Update the offer details below."
+								: "Fill in the details to create a new offer for this vendor."}
+						</SheetDescription>
+					</SheetHeader>
+
+					<form onSubmit={formik.handleSubmit} className="space-y-5 mt-6">
+						{/* Offer Type */}
+						<div className="space-y-2">
+							<label className="text-xs font-bold text-foreground">
+								Offer Type *
+							</label>
+							<select
+								name="type"
+								value={formik.values.type}
+								onChange={(e) =>
+									formik.setFieldValue("type", e.target.value as OfferType)
+								}
+								className="flex h-10 w-full items-center justify-between rounded-lg border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring cursor-pointer"
+							>
+								{Object.values(OFFER_TYPE).map((type) => (
+									<option key={type} value={type}>
+										{type === "PERCENTAGE"
+											? "Percentage Discount"
+											: type === "FLAT"
+												? "Flat Discount"
+												: "Text Offer"}
+									</option>
+								))}
+							</select>
+						</div>
+
+						{/* Value - only show when type is not TEXT */}
+						{formik.values.type !== "TEXT" && (
+							<div className="space-y-2">
+								<label className="text-xs font-bold text-foreground">
+									{formik.values.type === "PERCENTAGE"
+										? "Percentage *"
+										: "Amount *"}
+								</label>
+								<div className="relative">
+									{formik.values.type === "FLAT" && (
+										<span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-bold">
+											৳
+										</span>
+									)}
+									<Input
+										name="value"
+										type="number"
+										value={formik.values.value}
+										onChange={formik.handleChange}
+										placeholder={
+											formik.values.type === "PERCENTAGE"
+												? "e.g. 10"
+												: "e.g. 500"
+										}
+										className={`h-10 ${formik.values.type === "FLAT" ? "pl-8" : ""}`}
+										min="0"
+										max={formik.values.type === "PERCENTAGE" ? "100" : undefined}
+									/>
+									{formik.values.type === "PERCENTAGE" && (
+										<span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-bold">
+											%
+										</span>
+									)}
+								</div>
+								{formik.errors.value && (
+									<p className="text-xs text-destructive">{formik.errors.value}</p>
+								)}
+							</div>
+						)}
+
+						{/* Title - only show when type is TEXT */}
+						{formik.values.type === "TEXT" && (
+							<div className="space-y-2">
+								<label className="text-xs font-bold text-foreground">
+									Title *
+								</label>
+								<Input
+									name="title"
+									value={formik.values.title}
+									onChange={formik.handleChange}
+									placeholder="e.g. Free Service"
+									className="h-10"
+								/>
+								{formik.errors.title && (
+									<p className="text-xs text-destructive">{formik.errors.title}</p>
+								)}
+							</div>
+						)}
+
+						{/* Description */}
+						<div className="space-y-2">
+							<label className="text-xs font-bold text-foreground">
+								Description
+							</label>
+							<textarea
+								name="description"
+								value={formik.values.description}
+								onChange={formik.handleChange}
+								placeholder="Describe the offer..."
+								rows={3}
+								className="w-full px-3 py-2 bg-background border border-input rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+							/>
+						</div>
+
+						{/* Dates */}
+						<div className="grid grid-cols-2 gap-4">
+							<div className="space-y-2">
+								<label className="text-xs font-bold text-foreground">
+									Start Date *
+								</label>
+								<Input
+									name="startDate"
+									type="date"
+									value={formik.values.startDate}
+									onChange={formik.handleChange}
+									className="h-10"
+								/>
+							</div>
+							<div className="space-y-2">
+								<label className="text-xs font-bold text-foreground">
+									End Date
+								</label>
+								<Input
+									name="endDate"
+									type="date"
+									value={formik.values.endDate}
+									onChange={formik.handleChange}
+									disabled={!formik.values.hasExpireDate}
+									className="h-10"
+								/>
+							</div>
+						</div>
+
+						{/* Has Expiry */}
+						<div className="flex items-center gap-3 p-3 bg-muted/50 rounded-xl">
+							<Switch
+								checked={formik.values.hasExpireDate}
+								onCheckedChange={(checked) => {
+									formik.setFieldValue("hasExpireDate", checked);
+									if (!checked) {
+										formik.setFieldValue("endDate", "");
+									}
+								}}
+							/>
+							<div>
+								<p className="text-sm font-bold text-foreground">
+									Has Expiry Date
+								</p>
+								<p className="text-[11px] text-muted-foreground">
+									Set an end date for this offer
+								</p>
+							</div>
+						</div>
+
+						<SheetFooter className="pt-4">
+							<Button
+								type="button"
+								variant="outline"
+								onClick={() => setIsSheetOpen(false)}
+								className="h-10"
+							>
+								Cancel
+							</Button>
+							<Button
+								type="submit"
+								disabled={isPending || Object.keys(formik.errors).length > 0}
+								className="h-10"
+							>
+								{isPending ? (
+									<Loader2 className="w-4 h-4 animate-spin mr-2" />
+								) : (
+									<Save className="w-4 h-4 mr-2" />
+								)}
+								{offer ? "Update Offer" : "Create Offer"}
+							</Button>
+						</SheetFooter>
+					</form>
+				</SheetContent>
+			</Sheet>
+
+			{/* Header Card */}
+			<div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+				<div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-primary/5 to-secondary/5 border-b border-border">
+					<div className="flex items-center gap-3">
+						<div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+							<Gift className="w-5 h-5 text-primary" />
+						</div>
+						<div>
+							<h2 className="text-lg font-black text-foreground">
+								Offer & Discount
+							</h2>
+							<p className="text-xs text-muted-foreground">
+								{offer
+									? "Manage the vendor's current offer"
+									: "Create an offer for this vendor"}
+							</p>
+						</div>
+					</div>
+					<Button
+						onClick={() => setIsSheetOpen(true)}
+						className="h-9 px-4 text-xs font-bold"
+					>
+						{offer ? (
+							<>
+								<Pencil className="w-3.5 h-3.5 mr-1.5" />
+								Edit Offer
+							</>
+						) : (
+							<>
+								<Plus className="w-3.5 h-3.5 mr-1.5" />
+								Create Offer
+							</>
+						)}
+					</Button>
+				</div>
+
+				{/* Offer Content */}
+				{!offer ? (
+					<div className="text-center py-16">
+						<div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
+							<Gift className="w-8 h-8 text-muted-foreground/40" />
+						</div>
+						<p className="text-sm font-bold text-muted-foreground mb-1">
+							No offer created yet
+						</p>
+						<p className="text-xs text-muted-foreground/60 mb-4">
+							Create an offer to attract more customers
+						</p>
+						<Button
+							onClick={() => setIsSheetOpen(true)}
+							variant="outline"
+							className="h-9 px-4 text-xs font-bold"
+						>
+							<Plus className="w-3.5 h-3.5 mr-1.5" />
+							Create Offer
 						</Button>
+					</div>
+				) : (
+					<div className="p-6">
+						{/* Status & Actions */}
+						<div className="flex items-center justify-between mb-6 pb-4 border-b border-border">
+							<div className="flex items-center gap-3">
+								<Badge
+									variant="outline"
+									className={`font-bold text-[11px] px-3 py-1 ${
+										offer.isActive
+											? "bg-emerald-50 text-emerald-700 border-emerald-200"
+											: "bg-red-50 text-red-700 border-red-200"
+									}`}
+								>
+									{offer.isActive ? "Active" : "Inactive"}
+								</Badge>
+								<span className="text-xs text-muted-foreground">
+									{offer.type === "PERCENTAGE"
+										? `${offer.value}% off`
+										: offer.type === "FLAT"
+											? `৳${offer.value} off`
+											: offer.value}
+								</span>
+							</div>
+							<div className="flex items-center gap-3">
+								<div className="flex items-center gap-2">
+									<span className="text-xs font-bold text-muted-foreground">
+										{offer.isActive ? "Active" : "Inactive"}
+									</span>
+									<Switch
+										checked={offer.isActive}
+										onCheckedChange={handleStatusToggle}
+										disabled={isPending}
+									/>
+								</div>
+								<Button
+									variant="destructive"
+									size="sm"
+									onClick={() => setDeleteConfirmOpen(true)}
+									disabled={isPending}
+									className="h-8 px-3 text-xs font-bold"
+								>
+									<Trash2 className="w-3.5 h-3.5 mr-1.5" />
+									Delete
+								</Button>
+							</div>
+						</div>
+
+						{/* Offer Details */}
+						<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+							<div className="space-y-1.5">
+								<label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+									Type
+								</label>
+								<p className="text-sm font-bold text-foreground">
+									{offer.type === "PERCENTAGE"
+										? "Percentage Discount"
+										: offer.type === "FLAT"
+											? "Flat Discount"
+											: "Text Offer"}
+								</p>
+							</div>
+							{offer.value != null && (
+								<div className="space-y-1.5">
+									<label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+										Value
+									</label>
+									<p className="text-sm font-bold text-foreground">
+										{offer.type === "PERCENTAGE"
+											? `${offer.value}%`
+											: `৳${offer.value}`}
+									</p>
+								</div>
+							)}
+							{offer.title && (
+								<div className="space-y-1.5">
+									<label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+										Title
+									</label>
+									<p className="text-sm font-bold text-foreground">
+										{offer.title}
+									</p>
+								</div>
+							)}
+							{offer.description && (
+								<div className="space-y-1.5 sm:col-span-2 lg:col-span-3">
+									<label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+										Description
+									</label>
+									<p className="text-sm text-foreground">
+										{offer.description}
+									</p>
+								</div>
+							)}
+							<div className="space-y-1.5">
+								<label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+									Start Date
+								</label>
+								<p className="text-sm text-foreground">
+									{new Date(offer.startDate).toLocaleDateString()}
+								</p>
+							</div>
+							{offer.hasExpireDate && offer.endDate && (
+								<div className="space-y-1.5">
+									<label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+										End Date
+									</label>
+									<p className="text-sm text-foreground">
+										{new Date(offer.endDate).toLocaleDateString()}
+									</p>
+								</div>
+							)}
+						</div>
 					</div>
 				)}
 			</div>
-
-			{!offer ? (
-				<div className="text-center py-10">
-					<p className="text-sm text-muted-foreground">
-						No active offer or discount
-					</p>
-				</div>
-			) : (
-				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-					<div className="space-y-1.5">
-						<label className="text-xs font-bold text-muted-foreground">
-							Type
-						</label>
-						<p className="text-sm font-bold text-foreground">
-							{offer.type}
-						</p>
-					</div>
-					<div className="space-y-1.5">
-						<label className="text-xs font-bold text-muted-foreground">
-							Value
-						</label>
-						<p className="text-sm font-bold text-foreground">
-							{offer.type === "PERCENTAGE"
-								? `${offer.value}%`
-								: `৳${offer.value}`}
-						</p>
-					</div>
-					{offer.title && (
-						<div className="space-y-1.5">
-							<label className="text-xs font-bold text-muted-foreground">
-								Title
-							</label>
-							<p className="text-sm font-bold text-foreground">
-								{offer.title}
-							</p>
-						</div>
-					)}
-					{offer.description && (
-						<div className="space-y-1.5">
-							<label className="text-xs font-bold text-muted-foreground">
-								Description
-							</label>
-							<p className="text-sm text-foreground">
-								{offer.description}
-							</p>
-						</div>
-					)}
-					<div className="space-y-1.5">
-						<label className="text-xs font-bold text-muted-foreground">
-							Start Date
-						</label>
-						<p className="text-sm text-foreground">
-							{new Date(offer.startDate).toLocaleDateString()}
-						</p>
-					</div>
-					{offer.hasExpireDate && offer.endDate && (
-						<div className="space-y-1.5">
-							<label className="text-xs font-bold text-muted-foreground">
-								End Date
-							</label>
-							<p className="text-sm text-foreground">
-								{new Date(offer.endDate).toLocaleDateString()}
-							</p>
-						</div>
-					)}
-				</div>
-			)}
 		</div>
 	);
 }

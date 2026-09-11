@@ -6,6 +6,7 @@ export { useUpdateVendorApproval } from "./useUpdateVendorApproval";
 export { useVendorServices } from "./useVendorServices";
 export { useToggleVendorService } from "./useToggleVendorService";
 export { useUpdateVendorOffer } from "./useUpdateVendorOffer";
+export { useUpdateVendorOfferStatus } from "./useUpdateVendorOfferStatus";
 export { useDeleteVendorOffer } from "./useDeleteVendorOffer";
 export { useUploadVendorLogo } from "./useUploadVendorLogo";
 export { useUploadVendorCover } from "./useUploadVendorCover";
