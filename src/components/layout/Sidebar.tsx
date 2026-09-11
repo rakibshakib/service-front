@@ -19,9 +19,9 @@ const Sidebar = ({ config, isCollapsed, userType }: SidebarProps) => {
 
 	return (
 		<aside
-			className={`${isCollapsed ? "w-17.5" : "w-64"} bg-card border-r border-border transition-all duration-300 flex flex-col justify-between shrink-0 z-20`}
+			className={`${isCollapsed ? "w-17.5" : "w-64"} bg-card border-r border-border transition-all duration-300 flex flex-col justify-between shrink-0 z-20 h-full`}
 		>
-			<div className="p-3 space-y-6">
+			<div className="p-3 space-y-6 overflow-y-auto custom-scrollbar flex-1">
 				{/* Logo */}
 				<div
 					className={`px-3 py-2 rounded-xl bg-muted/50 border border-border flex items-center justify-between ${!isCollapsed && "justify-center"}`}
@@ -62,7 +62,7 @@ const Sidebar = ({ config, isCollapsed, userType }: SidebarProps) => {
 			</div>
 
 			{/* Footer */}
-			<div className="p-3 border-t border-border space-y-1">
+			<div className="p-3 border-t border-border space-y-1 shrink-0">
 				{config.footer?.map((item) => (
 					<SidebarItem
 						key={item.id}

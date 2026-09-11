@@ -18,7 +18,7 @@ const DashboardLayout = ({ config, children }: DashboardLayoutProps) => {
 	console.log({ user });
 
 	return (
-		<div className="min-h-screen bg-muted/30 text-foreground font-sans antialiased flex flex-col">
+		<div className="h-screen bg-muted/30 text-foreground font-sans antialiased flex flex-col overflow-hidden">
 			<TopNavbar
 				config={config}
 				onToggleSidebar={() => setIsCollapsed(!isCollapsed)}
@@ -29,7 +29,7 @@ const DashboardLayout = ({ config, children }: DashboardLayoutProps) => {
 					isCollapsed={isCollapsed}
 					userType={userType}
 				/>
-				<main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+				<main className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 lg:p-8">
 					{children}
 				</main>
 			</div>

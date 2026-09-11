@@ -1,6 +1,17 @@
 "use client";
 
 import PasswordInput from "@/components/global/PasswordInput";
+import ServiceImage from "@/components/global/service-card/ServiceImage";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,10 +51,12 @@ import {
 } from "@/lib/api/vendor/hooks";
 import { useFormik } from "formik";
 import {
+	AlertTriangle,
 	ArrowLeft,
 	Building2,
 	Calendar,
 	Copy,
+	Layers,
 	Loader2,
 	Mail,
 	MapPin,
@@ -51,6 +64,7 @@ import {
 	Phone,
 	Save,
 	Star,
+	Tag,
 	Trash2,
 	Upload,
 	X,
@@ -601,14 +615,30 @@ export default function VendorDetailsPage({
 
 // Services Tab Component
 function VendorServicesTab({ vendorId }: { vendorId: number }) {
-	const [page, setPage] = useState(1);
-	const { data, isLoading } = useVendorServices(vendorId, { page, limit: 10 });
+	const { data, isLoading } = useVendorServices(vendorId);
 	const { mutate: toggleService, isPending } = useToggleVendorService();
+	const [pendingToggle, setPendingToggle] = useState<{
+		serviceId: number;
+		serviceName: string;
+		currentActive: boolean;
+	} | null>(null);
 
-	const services = data?.data ?? [];
+	const categories = data?.data ?? [];
 	const meta = data?.meta;
 
-	const handleToggle = (serviceId: number, currentActive: boolean) => {
+	const totalServices = categories.reduce(
+		(sum, cat) => sum + cat.services.length,
+		0,
+	);
+	const servedServices = categories.reduce(
+		(sum, cat) => sum + cat.services.filter((s) => s.isActive).length,
+		0,
+	);
+	const unservedServices = totalServices - servedServices;
+
+	const handleToggle = () => {
+		if (!pendingToggle) return;
+		const { serviceId, currentActive } = pendingToggle;
 		if (currentActive) {
 			toggleService({
 				id: vendorId,
@@ -620,6 +650,7 @@ function VendorServicesTab({ vendorId }: { vendorId: number }) {
 				data: { activeServicesId: [serviceId] },
 			});
 		}
+		setPendingToggle(null);
 	};
 
 	if (isLoading) {
@@ -631,113 +662,183 @@ function VendorServicesTab({ vendorId }: { vendorId: number }) {
 	}
 
 	return (
-		<div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
-			<Table>
-				<TableHeader>
-					<TableRow className="bg-muted/50">
-						<TableHead className="font-bold text-foreground">
-							Service Name
-						</TableHead>
-						<TableHead className="font-bold text-foreground">
-							Category
-						</TableHead>
-						<TableHead className="font-bold text-foreground">
-							Price
-						</TableHead>
-						<TableHead className="font-bold text-foreground">
-							Duration
-						</TableHead>
-						<TableHead className="font-bold text-foreground">
-							Status
-						</TableHead>
-						<TableHead className="font-bold text-foreground text-right">
-							Actions
-						</TableHead>
-					</TableRow>
-				</TableHeader>
-				<TableBody>
-					{services.length === 0 ? (
-						<TableRow>
-							<TableCell colSpan={6} className="text-center py-10">
-								<p className="text-sm text-muted-foreground">
-									No services found
-								</p>
-							</TableCell>
-						</TableRow>
-					) : (
-						services.map((vs, index) => (
-							<TableRow
-								key={`${vendorId}-service-${index}`}
-								className="hover:bg-muted/30"
+		<div className="space-y-4">
+			{/* Confirmation Dialog */}
+			<AlertDialog
+				open={!!pendingToggle}
+				onOpenChange={(open) => {
+					if (!open) setPendingToggle(null);
+				}}
+			>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<div className="mx-auto w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-2">
+							<AlertTriangle className="w-6 h-6 text-destructive" />
+						</div>
+						<AlertDialogTitle className="text-center">
+							Confirm Service {pendingToggle?.currentActive ? "Deactivation" : "Activation"}
+						</AlertDialogTitle>
+						<AlertDialogDescription className="text-center">
+							Are you sure you want to {pendingToggle?.currentActive ? "deactivate" : "activate"}{" "}
+							<span className="font-bold text-foreground">{pendingToggle?.serviceName}</span>?
+							{pendingToggle?.currentActive && (
+								<span className="block mt-1 text-destructive font-medium">
+									The vendor will no longer offer this service.
+								</span>
+							)}
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Cancel</AlertDialogCancel>
+						<AlertDialogAction
+							onClick={handleToggle}
+							className={
+								pendingToggle?.currentActive
+									? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+									: ""
+							}
+						>
+							{pendingToggle?.currentActive ? "Deactivate" : "Activate"}
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+
+			{/* Summary Cards */}
+			<div className="grid grid-cols-3 gap-3">
+				<div className="bg-card border border-border rounded-xl px-4 py-3 flex items-center gap-3">
+					<div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+						<Layers className="w-5 h-5 text-primary" />
+					</div>
+					<div>
+						<p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+							Total Services
+						</p>
+						<p className="text-xl font-black text-foreground">{totalServices}</p>
+					</div>
+				</div>
+				<div className="bg-card border border-border rounded-xl px-4 py-3 flex items-center gap-3">
+					<div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+						<div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+					</div>
+					<div>
+						<p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+							Served
+						</p>
+						<p className="text-xl font-black text-foreground">{servedServices}</p>
+					</div>
+				</div>
+				<div className="bg-card border border-border rounded-xl px-4 py-3 flex items-center gap-3">
+					<div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0">
+						<div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+					</div>
+					<div>
+						<p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+							Unserved
+						</p>
+						<p className="text-xl font-black text-foreground">{unservedServices}</p>
+					</div>
+				</div>
+			</div>
+
+			{/* Category Groups */}
+			{categories.length === 0 ? (
+				<div className="bg-card rounded-2xl border border-border shadow-sm text-center py-16">
+					<div className="flex flex-col items-center gap-2">
+						<Layers className="w-10 h-10 text-muted-foreground/40" />
+						<p className="text-sm font-bold text-muted-foreground">
+							No services found
+						</p>
+					</div>
+				</div>
+			) : (
+				<div className="space-y-4">
+					{categories.map((group) => {
+						const servedCount = group.services.filter((s) => s.isActive).length;
+						return (
+							<div
+								key={group.category.id}
+								className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden"
 							>
-								<TableCell className="font-bold text-sm">
-									{vs.service?.name || "-"}
-								</TableCell>
-								<TableCell className="text-xs text-muted-foreground">
-									Category #{vs.service?.categoryId}
-								</TableCell>
-								<TableCell className="text-sm font-bold">
-									৳{vs.service?.price || 0}
-								</TableCell>
-								<TableCell className="text-xs text-muted-foreground">
-									{vs.service?.duration || "-"}
-								</TableCell>
-								<TableCell>
+								{/* Category Header */}
+								<div className="flex items-center justify-between px-5 py-3 bg-muted/30 border-b border-border">
+									<div className="flex items-center gap-3">
+										<div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+											<Tag className="w-4 h-4 text-primary" />
+										</div>
+										<div>
+											<h3 className="text-sm font-black text-foreground">
+												{group.category.name}
+											</h3>
+											<p className="text-[11px] text-muted-foreground">
+												{servedCount}/{group.services.length} served
+											</p>
+										</div>
+									</div>
 									<Badge
 										variant="outline"
-										className={`font-bold text-[10px] px-2 py-0.5 ${
-											vs.isActive
-												? "bg-emerald-50 text-emerald-700 border-emerald-200"
-												: "bg-red-50 text-red-700 border-red-200"
-										}`}
+										className="bg-primary/10 text-primary border-primary/20 font-bold text-[10px] px-2 py-0.5"
 									>
-										{vs.isActive ? "Active" : "Inactive"}
+										{group.services.length} services
 									</Badge>
-								</TableCell>
-								<TableCell className="text-right">
-									<Switch
-										checked={vs.isActive}
-										onCheckedChange={() =>
-											handleToggle(vs.serviceId, vs.isActive)
-										}
-										disabled={isPending}
-									/>
-								</TableCell>
-							</TableRow>
-						))
-					)}
-				</TableBody>
-			</Table>
+								</div>
 
-			{/* Pagination */}
-			{meta && meta.totalPages > 1 && (
-				<div className="flex items-center justify-between px-4 py-3 border-t border-border">
-					<p className="text-xs text-muted-foreground">
-						Showing {(meta.page - 1) * meta.limit + 1} to{" "}
-						{Math.min(meta.page * meta.limit, meta.total)} of {meta.total}
-					</p>
-					<div className="flex items-center gap-2">
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={() => setPage((p) => Math.max(1, p - 1))}
-							disabled={page === 1}
-							className="h-8 px-3 text-xs font-bold"
-						>
-							Previous
-						</Button>
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={() =>
-								setPage((p) => Math.min(meta.totalPages, p + 1))
-							}
-							disabled={page === meta.totalPages}
-							className="h-8 px-3 text-xs font-bold"
-						>
-							Next
-						</Button>
-					</div>
+								{/* Services List */}
+								<div className="divide-y divide-border">
+									{group.services.map((service) => (
+										<div
+											key={service.id}
+											className="flex items-center justify-between px-5 py-3 hover:bg-muted/20 transition-colors"
+										>
+											<div className="flex items-center gap-3 flex-1 min-w-0 mr-4">
+												<div className="relative w-10 h-10 rounded-lg bg-muted overflow-hidden shrink-0">
+													<ServiceImage
+														src={service.imageUrl || undefined}
+														alt={service.name}
+														sizes="40px"
+														className="object-cover"
+													/>
+												</div>
+												<div className="flex-1 min-w-0">
+													<div className="flex items-center gap-2">
+														<p className="text-sm font-bold text-foreground truncate">
+															{service.name}
+														</p>
+														<Badge
+															variant="outline"
+															className={`font-bold text-[10px] px-2 py-0.5 shrink-0 ${
+																service.isActive
+																	? "bg-emerald-50 text-emerald-700 border-emerald-200"
+																	: "bg-red-50 text-red-700 border-red-200"
+															}`}
+														>
+															{service.isActive ? "Active" : "Inactive"}
+														</Badge>
+													</div>
+													{service.description && (
+														<p className="text-xs text-muted-foreground truncate mt-0.5 max-w-[400px]">
+															{service.description}
+														</p>
+													)}
+												</div>
+											</div>
+											<Switch
+												checked={service.isActive}
+												onCheckedChange={() =>
+													setPendingToggle({
+														serviceId: service.id,
+														serviceName: service.name,
+														currentActive: service.isActive,
+													})
+												}
+												disabled={isPending}
+											/>
+										</div>
+									))}
+								</div>
+							</div>
+						);
+					})}
 				</div>
 			)}
 		</div>

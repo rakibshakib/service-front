@@ -68,7 +68,7 @@ export interface VendorCategory {
 	};
 }
 
-// Vendor service type
+// Vendor service type (legacy flat structure)
 export interface VendorService {
 	id: number;
 	vendorId: number;
@@ -82,6 +82,26 @@ export interface VendorService {
 		duration: string;
 		categoryId: number;
 	};
+}
+
+// Grouped service by category (API response structure)
+export interface GroupedService {
+	id: number;
+	name: string;
+	description: string | null;
+	imageUrl: string | null;
+	imagePath: string | null;
+	isActive: boolean;
+}
+
+export interface ServiceCategory {
+	id: number;
+	name: string;
+}
+
+export interface CategoryServicesGroup {
+	category: ServiceCategory;
+	services: GroupedService[];
 }
 
 // Pagination meta
@@ -167,8 +187,8 @@ export const vendorApi = {
 	updateVendorApproval: (id: number, data: UpdateVendorApprovalPayload): Promise<Vendor> =>
 		api.patch(ApiRoutes.vendor.approval(id), data),
 
-	// Get vendor services
-	getVendorServices: (id: number, params?: VendorPaginationParams): Promise<PaginatedResponse<VendorService>> =>
+	// Get vendor services (grouped by category)
+	getVendorServices: (id: number, params?: VendorPaginationParams): Promise<PaginatedResponse<CategoryServicesGroup>> =>
 		api.get(ApiRoutes.vendor.services(id), { params }),
 
 	// Toggle vendor service status
