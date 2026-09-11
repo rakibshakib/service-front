@@ -1,0 +1,615 @@
+"use client";
+
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+	Sheet,
+	SheetContent,
+	SheetDescription,
+	SheetFooter,
+	SheetHeader,
+	SheetTitle,
+} from "@/components/ui/sheet";
+import { Switch } from "@/components/ui/switch";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "@/components/ui/table";
+import { useCategories } from "@/lib/api/category/hooks";
+import type { Service } from "@/lib/api/service";
+import {
+	useCreateService,
+	useDeleteService,
+	useServices,
+	useUpdateService,
+	useUpdateServiceStatus,
+} from "@/lib/api/service/hooks";
+import { useFormik } from "formik";
+import {
+	ChevronLeft,
+	ChevronRight,
+	ImagePlus,
+	Loader2,
+	Pencil,
+	Plus,
+	Tag,
+	Trash2,
+	Wrench,
+} from "lucide-react";
+import Image from "next/image";
+import { useState } from "react";
+import { toast } from "sonner";
+
+const PAGE_SIZE = 10;
+
+export default function AdminServicesPage() {
+	const [page, setPage] = useState(1);
+	const [isCreateOpen, setIsCreateOpen] = useState(false);
+	const [editingService, setEditingService] = useState<Service | null>(null);
+	const [deletingService, setDeletingService] = useState<Service | null>(null);
+	const [updatingStatusId, setUpdatingStatusId] = useState<number | null>(null);
+
+	const { data, isLoading } = useServices({ page, limit: PAGE_SIZE });
+	const { mutate: createService, isPending: isCreating } = useCreateService();
+	const { mutate: updateService, isPending: isUpdating } = useUpdateService();
+	const { mutate: updateStatus } = useUpdateServiceStatus();
+	const { mutate: deleteService, isPending: isDeleting } = useDeleteService();
+
+	const services = data?.data ?? [];
+	const meta = data?.meta;
+
+	const handleStatusChange = (id: number, isActive: boolean) => {
+		setUpdatingStatusId(id);
+		updateStatus(
+			{ id, data: { isActive } },
+			{
+				onSuccess: () =>
+					toast.success(
+						isActive ? "Service activated" : "Service deactivated",
+					),
+				onError: (error: { message?: string }) =>
+					toast.error(error?.message || "Failed to update status"),
+				onSettled: () => setUpdatingStatusId(null),
+			},
+		);
+	};
+
+	const handleDelete = () => {
+		if (deletingService) {
+			deleteService(deletingService.id, {
+				onSuccess: () => {
+					setDeletingService(null);
+					toast.success("Service deleted successfully");
+				},
+				onError: (error: { message?: string }) => {
+					toast.error(error?.message || "Failed to delete service");
+				},
+			});
+		}
+	};
+
+	return (
+		<div className="space-y-6">
+			<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+				<div>
+					<div className="flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-wider">
+						<Wrench className="w-3.5 h-3.5" />
+						<span>Service Management</span>
+					</div>
+					<h1 className="text-2xl font-black text-foreground mt-1">
+						Manage Services
+					</h1>
+				</div>
+				<Button size="sm" onClick={() => setIsCreateOpen(true)}>
+					<Plus className="w-3.5 h-3.5 mr-1" />
+					Add Service
+				</Button>
+			</div>
+
+			{isLoading ? (
+				<div className="flex items-center justify-center py-20">
+					<Loader2 className="w-6 h-6 text-primary animate-spin" />
+				</div>
+			) : (
+				<div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+					<Table>
+						<TableHeader>
+							<TableRow className="bg-muted/50">
+								<TableHead className="font-bold text-foreground">
+									Service
+								</TableHead>
+								<TableHead className="font-bold text-foreground">
+									Category
+								</TableHead>
+								<TableHead className="font-bold text-foreground">
+									Description
+								</TableHead>
+								<TableHead className="font-bold text-foreground">
+									Status
+								</TableHead>
+								<TableHead className="font-bold text-foreground text-right">
+									Actions
+								</TableHead>
+							</TableRow>
+						</TableHeader>
+						<TableBody>
+							{services.length === 0 ? (
+								<TableRow>
+									<TableCell colSpan={5} className="text-center py-10">
+										<p className="text-sm text-muted-foreground">
+											No services found
+										</p>
+									</TableCell>
+								</TableRow>
+							) : (
+								services.map((service) => {
+									const isStatusUpdating = updatingStatusId === service.id;
+									return (
+										<TableRow
+											key={service.id}
+											className="hover:bg-muted/30"
+										>
+											<TableCell>
+												<div className="flex items-center gap-3">
+													{service.imageUrl ? (
+														<div className="relative w-9 h-9 rounded-lg overflow-hidden shrink-0">
+															<Image
+																src={service.imageUrl}
+																alt={service.name}
+																fill
+																sizes="36px"
+																className="object-cover"
+															/>
+														</div>
+													) : (
+														<div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+															<Wrench className="w-4 h-4 text-primary" />
+														</div>
+													)}
+													<p className="text-sm font-bold text-foreground">
+														{service.name}
+													</p>
+												</div>
+											</TableCell>
+											<TableCell>
+												<div className="flex items-center gap-1.5">
+													<Tag className="w-3 h-3 text-muted-foreground" />
+													<span className="text-xs text-muted-foreground">
+														{service.category?.name || "-"}
+													</span>
+												</div>
+											</TableCell>
+											<TableCell className="text-xs text-muted-foreground max-w-50 truncate">
+												{service.description || "-"}
+											</TableCell>
+											<TableCell onClick={(e) => e.stopPropagation()}>
+												{isStatusUpdating ? (
+													<Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+												) : (
+													<Switch
+														checked={service.isActive}
+														onCheckedChange={(checked) =>
+															handleStatusChange(service.id, checked)
+														}
+													/>
+												)}
+											</TableCell>
+											<TableCell>
+												<div className="flex items-center justify-end gap-1">
+													<Button
+														variant="ghost"
+														size="icon-sm"
+														onClick={() =>
+															setEditingService(service)
+														}
+													>
+														<Pencil className="w-4 h-4" />
+													</Button>
+													<Button
+														variant="ghost"
+														size="icon-sm"
+														onClick={() =>
+															setDeletingService(service)
+														}
+														className="text-destructive hover:text-destructive"
+													>
+														<Trash2 className="w-4 h-4" />
+													</Button>
+												</div>
+											</TableCell>
+										</TableRow>
+									);
+								})
+							)}
+						</TableBody>
+					</Table>
+
+					{/* Pagination */}
+					{meta && meta.totalPages > 1 && (
+						<div className="flex items-center justify-between px-4 py-3 border-t border-border">
+							<p className="text-xs text-muted-foreground">
+								Showing{" "}
+								<span className="font-bold text-foreground">
+									{(meta.page - 1) * meta.limit + 1}
+								</span>{" "}
+								to{" "}
+								<span className="font-bold text-foreground">
+									{Math.min(meta.page * meta.limit, meta.total)}
+								</span>{" "}
+								of{" "}
+								<span className="font-bold text-foreground">
+									{meta.total}
+								</span>{" "}
+								services
+							</p>
+							<div className="flex items-center gap-2">
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() => setPage((p) => Math.max(1, p - 1))}
+									disabled={page === 1}
+									className="h-8 px-3 text-xs font-bold"
+								>
+									<ChevronLeft className="w-3.5 h-3.5 mr-1" />
+									Previous
+								</Button>
+								<div className="flex items-center gap-1">
+									{Array.from(
+										{ length: meta.totalPages },
+										(_, i) => i + 1,
+									)
+										.filter(
+											(p) =>
+												p === 1 ||
+												p === meta.totalPages ||
+												Math.abs(p - page) <= 1,
+										)
+										.reduce<(number | "ellipsis")[]>(
+											(acc, p, i, arr) => {
+												if (
+													i > 0 &&
+													p - (arr[i - 1] as number) > 1
+												) {
+													acc.push("ellipsis");
+												}
+												acc.push(p);
+												return acc;
+											},
+											[],
+										)
+										.map((item, i) =>
+											item === "ellipsis" ? (
+												<span
+													key={`ellipsis-${i}`}
+													className="px-1 text-muted-foreground"
+												>
+													...
+												</span>
+											) : (
+												<button
+													key={item}
+													onClick={() => setPage(item)}
+													className={`h-8 min-w-8 px-2 rounded-lg text-xs font-bold transition-colors ${
+														page === item
+															? "bg-primary text-primary-foreground"
+															: "bg-card border border-border text-muted-foreground hover:bg-muted"
+													}`}
+												>
+													{item}
+												</button>
+											),
+										)}
+								</div>
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() =>
+										setPage((p) => Math.min(meta.totalPages, p + 1))
+									}
+									disabled={page === meta.totalPages}
+									className="h-8 px-3 text-xs font-bold"
+								>
+									Next
+									<ChevronRight className="w-3.5 h-3.5 ml-1" />
+								</Button>
+							</div>
+						</div>
+					)}
+				</div>
+			)}
+
+			{/* Create Service Sheet */}
+			<ServiceSheet
+				open={isCreateOpen}
+				onOpenChange={setIsCreateOpen}
+				onSubmit={(values) =>
+					createService(values, {
+						onSuccess: () => {
+							setIsCreateOpen(false);
+							toast.success("Service created successfully");
+						},
+						onError: (error: { message?: string }) => {
+							toast.error(error?.message || "Failed to create service");
+						},
+					})
+				}
+				isPending={isCreating}
+				title="Create Service"
+				description="Add a new service to a category."
+			/>
+
+			{/* Edit Service Sheet */}
+			{editingService && (
+				<ServiceSheet
+					open={!!editingService}
+					onOpenChange={(open) => !open && setEditingService(null)}
+					initialValues={{
+						name: editingService.name,
+						description: editingService.description || "",
+						categoryId: editingService.categoryId,
+					}}
+					onSubmit={(values) =>
+						updateService(
+							{ id: editingService.id, data: values },
+							{
+								onSuccess: () => {
+									setEditingService(null);
+									toast.success("Service updated successfully");
+								},
+								onError: (error: { message?: string }) => {
+									toast.error(
+										error?.message || "Failed to update service",
+									);
+								},
+							},
+						)
+					}
+					isPending={isUpdating}
+					title="Edit Service"
+					description="Update the service details below."
+				/>
+			)}
+
+			{/* Delete Confirmation Dialog */}
+			<AlertDialog
+				open={!!deletingService}
+				onOpenChange={(open) => !open && setDeletingService(null)}
+			>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Delete Service</AlertDialogTitle>
+						<AlertDialogDescription>
+							Are you sure you want to delete{" "}
+							<span className="font-bold text-foreground">
+								{deletingService?.name}
+							</span>
+							? This action cannot be undone.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel disabled={isDeleting}>
+							Cancel
+						</AlertDialogCancel>
+						<AlertDialogAction
+							onClick={handleDelete}
+							disabled={isDeleting}
+							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+						>
+							{isDeleting ? (
+								<Loader2 className="w-4 h-4 animate-spin mr-1.5" />
+							) : (
+								<Trash2 className="w-4 h-4 mr-1.5" />
+							)}
+							Delete
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+		</div>
+	);
+}
+
+// Service Sheet Component
+function ServiceSheet({
+	open,
+	onOpenChange,
+	initialValues,
+	onSubmit,
+	isPending,
+	title,
+	description,
+}: {
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
+	initialValues?: { name: string; description: string; categoryId: number };
+	onSubmit: (values: {
+		name: string;
+		description?: string;
+		categoryId: number;
+		image?: File;
+	}) => void;
+	isPending: boolean;
+	title: string;
+	description: string;
+}) {
+	const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+	const { data: categoriesData } = useCategories({ limit: 100 });
+	const categories = categoriesData?.data ?? [];
+
+	const formik = useFormik<{
+		name: string;
+		description: string;
+		categoryId: number;
+		image?: File;
+	}>({
+		enableReinitialize: true,
+		initialValues: {
+			name: initialValues?.name || "",
+			description: initialValues?.description || "",
+			categoryId: initialValues?.categoryId || categories[0]?.id || 0,
+			image: undefined,
+		},
+		validate: (values) => {
+			const errors: Record<string, string> = {};
+			if (!values.name) errors.name = "Name is required";
+			if (!values.categoryId) errors.categoryId = "Category is required";
+			return errors;
+		},
+		onSubmit: (values) => {
+			onSubmit({
+				name: values.name,
+				description: values.description || undefined,
+				categoryId: values.categoryId,
+				image: values.image,
+			});
+		},
+	});
+
+	const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const file = e.target.files?.[0];
+		if (file) {
+			setImagePreview(URL.createObjectURL(file));
+			formik.setFieldValue("image", file);
+		}
+	};
+
+	const handleClose = () => {
+		formik.resetForm();
+		setImagePreview(null);
+		onOpenChange(false);
+	};
+
+	return (
+		<Sheet open={open} onOpenChange={handleClose}>
+			<SheetContent className="sm:max-w-md overflow-y-auto custom-scrollbar">
+				<SheetHeader>
+					<SheetTitle>{title}</SheetTitle>
+					<SheetDescription>{description}</SheetDescription>
+				</SheetHeader>
+				<form onSubmit={formik.handleSubmit} className="space-y-4 mt-6">
+					<div className="space-y-1.5">
+						<label className="text-xs font-bold text-foreground">
+							Name <span className="text-destructive">*</span>
+						</label>
+						<Input
+							name="name"
+							value={formik.values.name}
+							onChange={formik.handleChange}
+							onBlur={formik.handleBlur}
+							placeholder="e.g. Home Tutoring, Sofa Cleaning"
+							className="h-10 text-sm"
+						/>
+						{formik.touched.name && formik.errors.name && (
+							<p className="text-[11px] text-destructive">
+								{formik.errors.name}
+							</p>
+						)}
+					</div>
+
+					<div className="space-y-1.5">
+						<label className="text-xs font-bold text-foreground">
+							Category <span className="text-destructive">*</span>
+						</label>
+						<select
+							name="categoryId"
+							value={formik.values.categoryId}
+							onChange={formik.handleChange}
+							onBlur={formik.handleBlur}
+							className="flex h-10 w-full items-center justify-between rounded-lg border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring cursor-pointer"
+						>
+							<option value={0}>Select a category</option>
+							{categories.map((cat) => (
+								<option key={cat.id} value={cat.id}>
+									{cat.name}
+								</option>
+							))}
+						</select>
+						{formik.touched.categoryId && formik.errors.categoryId && (
+							<p className="text-[11px] text-destructive">
+								{formik.errors.categoryId}
+							</p>
+						)}
+					</div>
+
+					<div className="space-y-1.5">
+						<label className="text-xs font-bold text-foreground">
+							Description
+						</label>
+						<textarea
+							name="description"
+							value={formik.values.description}
+							onChange={formik.handleChange}
+							onBlur={formik.handleBlur}
+							placeholder="Optional description"
+							rows={3}
+							className="w-full px-3 py-2 bg-muted/50 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+						/>
+					</div>
+
+					<div className="space-y-1.5">
+						<label className="text-xs font-bold text-foreground">
+							Service Image
+						</label>
+						<div className="flex items-center gap-3">
+							<label className="cursor-pointer">
+								<input
+									type="file"
+									accept="image/*"
+									className="hidden"
+									onChange={handleImageChange}
+								/>
+								<div className="flex items-center gap-2 px-3 py-2 bg-muted/50 border border-border rounded-xl text-xs font-bold text-muted-foreground hover:bg-muted transition-colors">
+									<ImagePlus className="w-4 h-4" />
+									Choose Image
+								</div>
+							</label>
+							{imagePreview && (
+								<div className="relative w-10 h-10 rounded-lg overflow-hidden">
+									<Image
+										src={imagePreview}
+										alt="Preview"
+										fill
+										sizes="40px"
+										className="object-cover"
+									/>
+								</div>
+							)}
+						</div>
+					</div>
+
+					<SheetFooter className="mt-6">
+						<Button
+							type="button"
+							variant="outline"
+							onClick={handleClose}
+							disabled={isPending}
+						>
+							Cancel
+						</Button>
+						<Button type="submit" disabled={isPending}>
+							{isPending && (
+								<Loader2 className="w-4 h-4 animate-spin mr-1.5" />
+							)}
+							{initialValues ? "Update" : "Create"}
+						</Button>
+					</SheetFooter>
+				</form>
+			</SheetContent>
+		</Sheet>
+	);
+}

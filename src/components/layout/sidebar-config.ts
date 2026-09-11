@@ -11,6 +11,7 @@ import {
 	Tag,
 	UserCheck,
 	Users,
+	Wrench,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -55,6 +56,12 @@ export const adminSidebarConfig: SidebarConfig = {
 			label: "Categories",
 			icon: Tag,
 			href: "/admin/categories",
+		},
+		{
+			id: "services",
+			label: "Services",
+			icon: Wrench,
+			href: "/admin/services",
 		},
 		{
 			id: "vendors",

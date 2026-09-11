@@ -16,7 +16,11 @@ const ApiRoutes = {
 	},
 	category: {
 		root: "/api/category",
-		status: (id: number) => `api/category/${id}/status`,
+		status: (id: number) => `/api/category/${id}/status`,
+	},
+	service: {
+		root: "/api/service",
+		status: (id: number) => `/api/service/${id}/status`,
 	},
 };
 
