@@ -13,6 +13,10 @@ const ApiRoutes = {
 		offerStatus: (id: number) => `/api/vendor/${id}/vendor-offers-status`,
 		categories: (id: number) => `/api/vendor/${id}/updateCategory`,
 	},
+	category: {
+		root: "/api/category",
+		status: (id: number) => `api/category/${id}/status`,
+	},
 };
 
 export default ApiRoutes;

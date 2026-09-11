@@ -1,7 +1,7 @@
 "use client";
 
 import { use, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useFormik } from "formik";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -74,6 +74,8 @@ export default function VendorDetailsPage({
 	const { id } = use(params);
 	const vendorId = Number(id);
 	const router = useRouter();
+	const searchParams = useSearchParams();
+	const activeTab = searchParams.get("tab") || "info";
 
 	const { data: vendor, isLoading } = useVendor(vendorId);
 	const { mutate: updateVendor, isPending: isUpdating } = useUpdateVendor();
@@ -221,7 +223,15 @@ export default function VendorDetailsPage({
 			</div>
 
 			{/* Tabs */}
-			<Tabs defaultValue="info" className="space-y-4">
+			<Tabs
+				value={activeTab}
+				onValueChange={(value) => {
+					const params = new URLSearchParams(searchParams.toString());
+					params.set("tab", value);
+					router.push(`?${params.toString()}`, { scroll: false });
+				}}
+				className="space-y-4"
+			>
 				<TabsList>
 					<TabsTrigger value="info">Vendor Info</TabsTrigger>
 					<TabsTrigger value="services">Services</TabsTrigger>
@@ -536,8 +546,8 @@ function VendorServicesTab({ vendorId }: { vendorId: number }) {
 							</TableCell>
 						</TableRow>
 					) : (
-						services.map((vs) => (
-							<TableRow key={vs.id} className="hover:bg-muted/30">
+						services.map((vs, index) => (
+							<TableRow key={`${vendorId}-service-${index}`} className="hover:bg-muted/30">
 								<TableCell className="font-bold text-sm">
 									{vs.service?.name || "-"}
 								</TableCell>
