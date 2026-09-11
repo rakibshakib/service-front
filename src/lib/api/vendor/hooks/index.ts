@@ -8,3 +8,4 @@ export { useToggleVendorService } from "./useToggleVendorService";
 export { useUpdateVendorOffer } from "./useUpdateVendorOffer";
 export { useDeleteVendorOffer } from "./useDeleteVendorOffer";
 export { useUploadVendorLogo } from "./useUploadVendorLogo";
+export { useUploadVendorCover } from "./useUploadVendorCover";

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useFormik } from "formik";
+import { toast } from "sonner";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -73,14 +74,26 @@ export default function AdminCategoriesPage() {
 		setUpdatingStatusId(id);
 		updateStatus(
 			{ id, data: { isActive } },
-			{ onSettled: () => setUpdatingStatusId(null) },
+			{
+				onSuccess: () =>
+					toast.success(isActive ? "Category activated" : "Category deactivated"),
+				onError: (error: { message?: string }) =>
+					toast.error(error?.message || "Failed to update status"),
+				onSettled: () => setUpdatingStatusId(null),
+			},
 		);
 	};
 
 	const handleDelete = () => {
 		if (deletingCategory) {
 			deleteCategory(deletingCategory.id, {
-				onSuccess: () => setDeletingCategory(null),
+				onSuccess: () => {
+					setDeletingCategory(null);
+					toast.success("Category deleted successfully");
+				},
+				onError: (error: { message?: string }) => {
+					toast.error(error?.message || "Failed to delete category");
+				},
 			});
 		}
 	};
@@ -303,7 +316,15 @@ export default function AdminCategoriesPage() {
 				open={isCreateOpen}
 				onOpenChange={setIsCreateOpen}
 				onSubmit={(values) =>
-					createCategory(values, { onSuccess: () => setIsCreateOpen(false) })
+					createCategory(values, {
+						onSuccess: () => {
+							setIsCreateOpen(false);
+							toast.success("Category created successfully");
+						},
+						onError: (error: { message?: string }) => {
+							toast.error(error?.message || "Failed to create category");
+						},
+					})
 				}
 				isPending={isCreating}
 				title="Create Category"
@@ -322,7 +343,15 @@ export default function AdminCategoriesPage() {
 					onSubmit={(values) =>
 						updateCategory(
 							{ id: editingCategory.id, data: values },
-							{ onSuccess: () => setEditingCategory(null) },
+							{
+								onSuccess: () => {
+									setEditingCategory(null);
+									toast.success("Category updated successfully");
+								},
+								onError: (error: { message?: string }) => {
+									toast.error(error?.message || "Failed to update category");
+								},
+							},
 						)
 					}
 					isPending={isUpdating}

@@ -75,9 +75,7 @@ export const categoryApi = {
 		if (data.description) formData.append("description", data.description);
 		if (data.isActive !== undefined) formData.append("isActive", String(data.isActive));
 		if (data.image) formData.append("image", data.image);
-		return api.post(ApiRoutes.category.root, formData, {
-			headers: { "Content-Type": "multipart/form-data" },
-		});
+		return api.post(ApiRoutes.category.root, formData);
 	},
 
 	// Update category
@@ -87,9 +85,7 @@ export const categoryApi = {
 		if (data.description !== undefined) formData.append("description", data.description);
 		if (data.isActive !== undefined) formData.append("isActive", String(data.isActive));
 		if (data.image) formData.append("image", data.image);
-		return api.patch(`${ApiRoutes.category.root}/${id}`, formData, {
-			headers: { "Content-Type": "multipart/form-data" },
-		});
+		return api.patch(`${ApiRoutes.category.root}/${id}`, formData);
 	},
 
 	// Update category status

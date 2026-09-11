@@ -9,6 +9,7 @@ const ApiRoutes = {
 		approval: (id: number) => `/api/vendor/${id}/approval`,
 		services: (id: number) => `/api/vendor/${id}/services`,
 		logo: (id: number) => `/api/vendor/${id}/logo`,
+		cover: (id: number) => `/api/vendor/${id}/cover`,
 		offers: (id: number) => `/api/vendor/${id}/vendor-offers`,
 		offerStatus: (id: number) => `/api/vendor/${id}/vendor-offers-status`,
 		categories: (id: number) => `/api/vendor/${id}/updateCategory`,

@@ -31,6 +31,8 @@ export interface Vendor {
 	responseTime: string;
 	logoUrl: string | null;
 	logoPath: string | null;
+	coverUrl: string | null;
+	coverPath: string | null;
 	vendorOffer: VendorOffer | null;
 	name: string;
 	phone: string | null;
@@ -178,7 +180,20 @@ export const vendorApi = {
 		const formData = new FormData();
 		formData.append("file", file);
 		return api.patch(ApiRoutes.vendor.logo(id), formData, {
-			headers: { "Content-Type": "multipart/form-data" },
+			headers: {
+				"Content-Type": undefined,
+			},
+		});
+	},
+
+	// Upload vendor cover
+	uploadCover: (id: number, file: File): Promise<Vendor> => {
+		const formData = new FormData();
+		formData.append("file", file);
+		return api.patch(ApiRoutes.vendor.cover(id), formData, {
+			headers: {
+				"Content-Type": undefined,
+			},
 		});
 	},
 
