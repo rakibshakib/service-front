@@ -23,6 +23,10 @@ const ApiRoutes = {
 		root: "/api/service",
 		status: (id: number) => `/api/service/${id}/status`,
 	},
+	customer: {
+		root: "/api/customer",
+		status: (id: number) => `/api/customer/${id}/status`,
+	},
 };
 
 export default ApiRoutes;
