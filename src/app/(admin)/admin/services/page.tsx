@@ -1,5 +1,6 @@
 "use client";
 
+import SearchableSelect from "@/components/global/SearchableSelect";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -10,6 +11,7 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -29,8 +31,13 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { useCategories } from "@/lib/api/category/hooks";
-import type { Service } from "@/lib/api/service";
+import { useCategoryDropdown } from "@/lib/api/category/hooks";
+import type {
+	CreateServicePayload,
+	Service,
+	ServiceVariation,
+	UpdateServicePayload,
+} from "@/lib/api/service";
 import {
 	useCreateService,
 	useDeleteService,
@@ -43,6 +50,7 @@ import {
 	ChevronLeft,
 	ChevronRight,
 	ImagePlus,
+	List,
 	Loader2,
 	Pencil,
 	Plus,
@@ -51,17 +59,28 @@ import {
 	Wrench,
 } from "lucide-react";
 import Image from "next/image";
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 
 const PAGE_SIZE = 10;
+
+interface PendingStatusAction {
+	serviceId: number;
+	serviceName: string;
+	isActive: boolean;
+}
 
 export default function AdminServicesPage() {
 	const [page, setPage] = useState(1);
 	const [isCreateOpen, setIsCreateOpen] = useState(false);
 	const [editingService, setEditingService] = useState<Service | null>(null);
 	const [deletingService, setDeletingService] = useState<Service | null>(null);
-	const [updatingStatusId, setUpdatingStatusId] = useState<number | null>(null);
+	const [updatingStatusId, setUpdatingStatusId] = useState<number | null>(
+		null,
+	);
+	const [pendingStatusAction, setPendingStatusAction] =
+		useState<PendingStatusAction | null>(null);
 
 	const { data, isLoading } = useServices({ page, limit: PAGE_SIZE });
 	const { mutate: createService, isPending: isCreating } = useCreateService();
@@ -86,6 +105,15 @@ export default function AdminServicesPage() {
 				onSettled: () => setUpdatingStatusId(null),
 			},
 		);
+	};
+
+	const confirmStatusChange = () => {
+		if (!pendingStatusAction) return;
+		handleStatusChange(
+			pendingStatusAction.serviceId,
+			pendingStatusAction.isActive,
+		);
+		setPendingStatusAction(null);
 	};
 
 	const handleDelete = () => {
@@ -125,8 +153,8 @@ export default function AdminServicesPage() {
 					<Loader2 className="w-6 h-6 text-primary animate-spin" />
 				</div>
 			) : (
-				<div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
-					<Table>
+				<div className="bg-card rounded-2xl border border-border shadow-sm overflow-x-auto">
+					<Table className="min-w-[900px]">
 						<TableHeader>
 							<TableRow className="bg-muted/50">
 								<TableHead className="font-bold text-foreground">
@@ -136,7 +164,10 @@ export default function AdminServicesPage() {
 									Category
 								</TableHead>
 								<TableHead className="font-bold text-foreground">
-									Description
+									Price
+								</TableHead>
+								<TableHead className="font-bold text-foreground">
+									Variations
 								</TableHead>
 								<TableHead className="font-bold text-foreground">
 									Status
@@ -149,7 +180,7 @@ export default function AdminServicesPage() {
 						<TableBody>
 							{services.length === 0 ? (
 								<TableRow>
-									<TableCell colSpan={5} className="text-center py-10">
+									<TableCell colSpan={6} className="text-center py-10">
 										<p className="text-sm text-muted-foreground">
 											No services found
 										</p>
@@ -157,7 +188,9 @@ export default function AdminServicesPage() {
 								</TableRow>
 							) : (
 								services.map((service) => {
-									const isStatusUpdating = updatingStatusId === service.id;
+									const isStatusUpdating =
+										updatingStatusId === service.id;
+									const hasVariations = service.variations?.length > 0;
 									return (
 										<TableRow
 											key={service.id}
@@ -193,17 +226,47 @@ export default function AdminServicesPage() {
 													</span>
 												</div>
 											</TableCell>
-											<TableCell className="text-xs text-muted-foreground max-w-50 truncate">
-												{service.description || "-"}
+											<TableCell>
+												<div className="flex items-center gap-2">
+													<span className="text-sm font-bold text-foreground">
+														৳{service.basePrice}
+													</span>
+													{hasVariations && (
+														<Badge
+															variant="outline"
+															className="text-[9px] px-1.5 py-0 bg-muted text-muted-foreground border-border"
+														>
+															Base Price
+														</Badge>
+													)}
+												</div>
 											</TableCell>
-											<TableCell onClick={(e) => e.stopPropagation()}>
+											<TableCell>
+												{hasVariations ? (
+													<VariationsPopover
+														variations={service.variations}
+														count={service.variations.length}
+													/>
+												) : (
+													<span className="text-xs text-muted-foreground">
+														-
+													</span>
+												)}
+											</TableCell>
+											<TableCell
+												onClick={(e) => e.stopPropagation()}
+											>
 												{isStatusUpdating ? (
 													<Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
 												) : (
 													<Switch
 														checked={service.isActive}
 														onCheckedChange={(checked) =>
-															handleStatusChange(service.id, checked)
+															setPendingStatusAction({
+																serviceId: service.id,
+																serviceName: service.name,
+																isActive: checked,
+															})
 														}
 													/>
 												)}
@@ -337,7 +400,7 @@ export default function AdminServicesPage() {
 				open={isCreateOpen}
 				onOpenChange={setIsCreateOpen}
 				onSubmit={(values) =>
-					createService(values, {
+					createService(values as CreateServicePayload, {
 						onSuccess: () => {
 							setIsCreateOpen(false);
 							toast.success("Service created successfully");
@@ -357,14 +420,13 @@ export default function AdminServicesPage() {
 				<ServiceSheet
 					open={!!editingService}
 					onOpenChange={(open) => !open && setEditingService(null)}
-					initialValues={{
-						name: editingService.name,
-						description: editingService.description || "",
-						categoryId: editingService.categoryId,
-					}}
+					initialValues={editingService}
 					onSubmit={(values) =>
 						updateService(
-							{ id: editingService.id, data: values },
+							{
+								id: editingService.id,
+								data: values as UpdateServicePayload,
+							},
 							{
 								onSuccess: () => {
 									setEditingService(null);
@@ -383,6 +445,36 @@ export default function AdminServicesPage() {
 					description="Update the service details below."
 				/>
 			)}
+
+			{/* Status Change Confirmation Dialog */}
+			<AlertDialog
+				open={!!pendingStatusAction}
+				onOpenChange={(open) => !open && setPendingStatusAction(null)}
+			>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>
+							{pendingStatusAction?.isActive
+								? "Activate Service"
+								: "Deactivate Service"}
+						</AlertDialogTitle>
+						<AlertDialogDescription>
+							Are you sure you want to{" "}
+							{pendingStatusAction?.isActive ? "activate" : "deactivate"}{" "}
+							<span className="font-bold text-foreground">
+								{pendingStatusAction?.serviceName}
+							</span>
+							?
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Cancel</AlertDialogCancel>
+						<AlertDialogAction onClick={confirmStatusChange}>
+							{pendingStatusAction?.isActive ? "Activate" : "Deactivate"}
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 
 			{/* Delete Confirmation Dialog */}
 			<AlertDialog
@@ -423,6 +515,80 @@ export default function AdminServicesPage() {
 	);
 }
 
+// Variations Popover Component
+function VariationsPopover({
+	variations,
+	count,
+}: {
+	variations: ServiceVariation[];
+	count: number;
+}) {
+	const [isOpen, setIsOpen] = useState(false);
+	const buttonRef = useRef<HTMLButtonElement>(null);
+	const [buttonRect, setButtonRect] = useState<DOMRect | null>(null);
+
+	const handleToggle = () => {
+		if (!isOpen && buttonRef.current) {
+			setButtonRect(buttonRef.current.getBoundingClientRect());
+		}
+		setIsOpen(!isOpen);
+	};
+
+	return (
+		<>
+			<button
+				ref={buttonRef}
+				type="button"
+				onClick={handleToggle}
+				className="flex items-center gap-1.5 px-2 py-1 text-xs font-bold text-primary bg-primary/10 rounded-lg hover:bg-primary/20 transition-colors"
+			>
+				<List className="w-3.5 h-3.5" />
+				<span>{count}</span>
+			</button>
+
+			{isOpen &&
+				buttonRect &&
+				createPortal(
+					<>
+						<div
+							className="fixed inset-0 z-[9998]"
+							onClick={() => setIsOpen(false)}
+						/>
+						<div
+							className="fixed z-[9999] w-64 bg-card border border-border rounded-xl shadow-lg overflow-hidden"
+							style={{
+								top: buttonRect.bottom + window.scrollY + 4,
+								left: buttonRect.left + window.scrollX,
+							}}
+						>
+							<div className="px-3 py-2 bg-muted/50 border-b border-border">
+								<p className="text-xs font-bold text-foreground">
+									Variations ({count})
+								</p>
+							</div>
+							<div className="max-h-[200px] overflow-y-auto custom-scrollbar divide-y divide-border">
+								{variations.map((v) => (
+									<div
+										key={v.id}
+										className="flex items-center justify-between px-3 py-2 hover:bg-muted/30"
+									>
+										<span className="text-xs text-foreground truncate">
+											{v.name}
+										</span>
+										<span className="text-xs font-bold text-foreground shrink-0 ml-2">
+											৳{v.price}
+										</span>
+									</div>
+								))}
+							</div>
+						</div>
+					</>,
+					document.body,
+				)}
+		</>
+	);
+}
+
 // Service Sheet Component
 function ServiceSheet({
 	open,
@@ -435,68 +601,171 @@ function ServiceSheet({
 }: {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	initialValues?: { name: string; description: string; categoryId: number };
-	onSubmit: (values: {
-		name: string;
-		description?: string;
-		categoryId: number;
-		image?: File;
-	}) => void;
+	initialValues?: Service;
+	onSubmit: (values: CreateServicePayload | UpdateServicePayload) => void;
 	isPending: boolean;
 	title: string;
 	description: string;
 }) {
-	const [imagePreview, setImagePreview] = useState<string | null>(null);
+	const [imagePreview, setImagePreview] = useState<string | null>(
+		() => initialValues?.imageUrl ?? null,
+	);
+	const imageFileRef = useRef<File | undefined>(undefined);
+	const [hasImage, setHasImage] = useState(() => !!initialValues?.imageUrl);
+	const [imageTouched, setImageTouched] = useState(false);
+	const [categorySearch, setCategorySearch] = useState("");
+	const [variations, setVariations] = useState<
+		{ id?: number; name: string; price: string }[]
+	>(
+		() =>
+			initialValues?.variations?.map((v) => ({
+				id: v.id,
+				name: v.name,
+				price: v.price,
+			})) ?? [],
+	);
+	const [newVariationName, setNewVariationName] = useState("");
+	const [newVariationPrice, setNewVariationPrice] = useState("");
 
-	const { data: categoriesData } = useCategories({ limit: 100 });
-	const categories = categoriesData?.data ?? [];
+	const { data: categoriesResponse, isLoading: isCategoriesLoading } =
+		useCategoryDropdown(
+			{
+				isActive: true,
+				search: categorySearch || undefined,
+			},
+			open,
+		);
+	const categories = categoriesResponse?.data ?? [];
 
-	const formik = useFormik<{
-		name: string;
-		description: string;
-		categoryId: number;
-		image?: File;
-	}>({
+	const categoryOptions = useMemo(
+		() =>
+			categories.map((cat) => ({
+				label: cat.name,
+				value: cat.id,
+			})),
+		[categories],
+	);
+
+	const isEditing = !!initialValues;
+
+	const formik = useFormik({
 		enableReinitialize: true,
 		initialValues: {
 			name: initialValues?.name || "",
+			shortDescription: initialValues?.shortDescription || "",
+			basePrice: initialValues?.basePrice || "",
 			description: initialValues?.description || "",
 			categoryId: initialValues?.categoryId || categories[0]?.id || 0,
-			image: undefined,
+			discountAmount: initialValues?.discountAmount || "",
+			discountType:
+				(initialValues?.discountType as "FLAT" | "PERCENTAGE" | "") || "",
 		},
 		validate: (values) => {
 			const errors: Record<string, string> = {};
-			if (!values.name) errors.name = "Name is required";
+			if (!values.name.trim()) errors.name = "Name is required";
+			if (!values.shortDescription.trim())
+				errors.shortDescription = "Short description is required";
+			if (!values.basePrice || Number(values.basePrice) <= 0)
+				errors.basePrice = "Valid base price is required";
 			if (!values.categoryId) errors.categoryId = "Category is required";
+			if (!isEditing && !hasImage)
+				errors.image = "Service image is required";
+			if (values.discountAmount && !values.discountType)
+				errors.discountType = "Discount type is required";
+			if (values.discountAmount && Number(values.discountAmount) <= 0)
+				errors.discountAmount = "Discount amount must be positive";
+			if (values.discountType && !values.discountAmount)
+				errors.discountAmount = "Discount amount is required";
 			return errors;
 		},
 		onSubmit: (values) => {
-			onSubmit({
-				name: values.name,
-				description: values.description || undefined,
-				categoryId: values.categoryId,
-				image: values.image,
-			});
+			if (isEditing) {
+				const payload: UpdateServicePayload = {
+					name: values.name,
+					shortDescription: values.shortDescription,
+					basePrice: values.basePrice,
+					categoryId: values.categoryId,
+					description: values.description || undefined,
+					discountAmount: values.discountAmount || undefined,
+					discountType:
+						(values.discountType as "FLAT" | "PERCENTAGE") || undefined,
+					variations: variations.map((v) => ({
+						id: v.id,
+						name: v.name,
+						price: Number(v.price),
+					})),
+				};
+				if (imageFileRef.current) payload.image = imageFileRef.current;
+				onSubmit(payload);
+			} else {
+				const payload: CreateServicePayload = {
+					name: values.name,
+					shortDescription: values.shortDescription,
+					basePrice: values.basePrice,
+					categoryId: values.categoryId,
+					description: values.description || undefined,
+					discountAmount: values.discountAmount || undefined,
+					discountType:
+						(values.discountType as "FLAT" | "PERCENTAGE") || undefined,
+					variations: variations.map((v) => ({
+						name: v.name,
+						price: Number(v.price),
+					})),
+					image: imageFileRef.current!,
+				};
+				onSubmit(payload);
+			}
 		},
 	});
 
 	const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0];
+		setImageTouched(true);
 		if (file) {
+			if (file.size > 5 * 1024 * 1024) {
+				toast.error("Image must be less than 5MB");
+				return;
+			}
 			setImagePreview(URL.createObjectURL(file));
-			formik.setFieldValue("image", file);
+			imageFileRef.current = file;
+			setHasImage(true);
 		}
+	};
+
+	const handleAddVariation = () => {
+		if (!newVariationName.trim() || !newVariationPrice) return;
+		setVariations([
+			...variations,
+			{ name: newVariationName, price: newVariationPrice },
+		]);
+		setNewVariationName("");
+		setNewVariationPrice("");
+	};
+
+	const handleRemoveVariation = (index: number) => {
+		setVariations(variations.filter((_, i) => i !== index));
 	};
 
 	const handleClose = () => {
 		formik.resetForm();
 		setImagePreview(null);
+		imageFileRef.current = undefined;
+		setHasImage(false);
+		setImageTouched(false);
+		setCategorySearch("");
+		setVariations([]);
+		setNewVariationName("");
+		setNewVariationPrice("");
 		onOpenChange(false);
+	};
+
+	const handleCategorySearch = (query: string) => {
+		setCategorySearch(query);
 	};
 
 	return (
 		<Sheet open={open} onOpenChange={handleClose}>
-			<SheetContent className="sm:max-w-md overflow-y-auto custom-scrollbar">
+			<SheetContent className="sm:max-w-lg overflow-y-auto custom-scrollbar">
 				<SheetHeader>
 					<SheetTitle>{title}</SheetTitle>
 					<SheetDescription>{description}</SheetDescription>
@@ -504,66 +773,7 @@ function ServiceSheet({
 				<form onSubmit={formik.handleSubmit} className="space-y-4 mt-6">
 					<div className="space-y-1.5">
 						<label className="text-xs font-bold text-foreground">
-							Name <span className="text-destructive">*</span>
-						</label>
-						<Input
-							name="name"
-							value={formik.values.name}
-							onChange={formik.handleChange}
-							onBlur={formik.handleBlur}
-							placeholder="e.g. Home Tutoring, Sofa Cleaning"
-							className="h-10 text-sm"
-						/>
-						{formik.touched.name && formik.errors.name && (
-							<p className="text-[11px] text-destructive">
-								{formik.errors.name}
-							</p>
-						)}
-					</div>
-
-					<div className="space-y-1.5">
-						<label className="text-xs font-bold text-foreground">
-							Category <span className="text-destructive">*</span>
-						</label>
-						<select
-							name="categoryId"
-							value={formik.values.categoryId}
-							onChange={formik.handleChange}
-							onBlur={formik.handleBlur}
-							className="flex h-10 w-full items-center justify-between rounded-lg border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring cursor-pointer"
-						>
-							<option value={0}>Select a category</option>
-							{categories.map((cat) => (
-								<option key={cat.id} value={cat.id}>
-									{cat.name}
-								</option>
-							))}
-						</select>
-						{formik.touched.categoryId && formik.errors.categoryId && (
-							<p className="text-[11px] text-destructive">
-								{formik.errors.categoryId}
-							</p>
-						)}
-					</div>
-
-					<div className="space-y-1.5">
-						<label className="text-xs font-bold text-foreground">
-							Description
-						</label>
-						<textarea
-							name="description"
-							value={formik.values.description}
-							onChange={formik.handleChange}
-							onBlur={formik.handleBlur}
-							placeholder="Optional description"
-							rows={3}
-							className="w-full px-3 py-2 bg-muted/50 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-						/>
-					</div>
-
-					<div className="space-y-1.5">
-						<label className="text-xs font-bold text-foreground">
-							Service Image
+							Service Image <span className="text-destructive">*</span>
 						</label>
 						<div className="flex items-center gap-3">
 							<label className="cursor-pointer">
@@ -590,6 +800,225 @@ function ServiceSheet({
 								</div>
 							)}
 						</div>
+						{imageTouched && !hasImage && !isEditing && (
+							<p className="text-[11px] text-destructive">
+								Service image is required
+							</p>
+						)}
+					</div>
+
+					<div className="space-y-1.5">
+						<label className="text-xs font-bold text-foreground">
+							Name <span className="text-destructive">*</span>
+						</label>
+						<Input
+							name="name"
+							value={formik.values.name}
+							onChange={formik.handleChange}
+							onBlur={formik.handleBlur}
+							placeholder="e.g. Home Tutoring, Sofa Cleaning"
+							className="h-10 text-sm"
+						/>
+						{formik.touched.name && formik.errors.name && (
+							<p className="text-[11px] text-destructive">
+								{formik.errors.name}
+							</p>
+						)}
+					</div>
+
+					<div className="space-y-1.5">
+						<label className="text-xs font-bold text-foreground">
+							Short Description{" "}
+							<span className="text-destructive">*</span>
+						</label>
+						<Input
+							name="shortDescription"
+							value={formik.values.shortDescription}
+							onChange={formik.handleChange}
+							onBlur={formik.handleBlur}
+							placeholder="Brief description (shown in cards)"
+							className="h-10 text-sm"
+						/>
+						{formik.touched.shortDescription &&
+							formik.errors.shortDescription && (
+								<p className="text-[11px] text-destructive">
+									{formik.errors.shortDescription}
+								</p>
+							)}
+					</div>
+
+					<div className="grid grid-cols-2 gap-3">
+						<div className="space-y-1.5">
+							<label className="text-xs font-bold text-foreground">
+								Base Price (৳){" "}
+								<span className="text-destructive">*</span>
+							</label>
+							<Input
+								name="basePrice"
+								type="number"
+								min="0"
+								value={formik.values.basePrice}
+								onChange={formik.handleChange}
+								onBlur={formik.handleBlur}
+								placeholder="0"
+								className="h-10 text-sm"
+							/>
+							{formik.touched.basePrice && formik.errors.basePrice && (
+								<p className="text-[11px] text-destructive">
+									{formik.errors.basePrice}
+								</p>
+							)}
+						</div>
+
+						<div className="space-y-1.5">
+							<label className="text-xs font-bold text-foreground">
+								Category <span className="text-destructive">*</span>
+							</label>
+							<SearchableSelect
+								options={categoryOptions}
+								value={formik.values.categoryId}
+								onValueChange={(val) =>
+									formik.setFieldValue("categoryId", val)
+								}
+								placeholder="Select"
+								searchPlaceholder="Search..."
+								loading={isCategoriesLoading}
+								onSearch={handleCategorySearch}
+								isSearching={
+									isCategoriesLoading && categorySearch.length > 0
+								}
+							/>
+							{formik.touched.categoryId && formik.errors.categoryId && (
+								<p className="text-[11px] text-destructive">
+									{formik.errors.categoryId}
+								</p>
+							)}
+						</div>
+					</div>
+
+					<div className="grid grid-cols-2 gap-3">
+						<div className="space-y-1.5">
+							<label className="text-xs font-bold text-foreground">
+								Discount Amount
+							</label>
+							<Input
+								name="discountAmount"
+								type="number"
+								min="0"
+								value={formik.values.discountAmount}
+								onChange={formik.handleChange}
+								onBlur={formik.handleBlur}
+								placeholder="0"
+								className="h-10 text-sm"
+							/>
+							{formik.touched.discountAmount &&
+								formik.errors.discountAmount && (
+									<p className="text-[11px] text-destructive">
+										{formik.errors.discountAmount}
+									</p>
+								)}
+						</div>
+
+						<div className="space-y-1.5">
+							<label className="text-xs font-bold text-foreground">
+								Discount Type
+							</label>
+							<select
+								name="discountType"
+								value={formik.values.discountType}
+								onChange={formik.handleChange}
+								onBlur={formik.handleBlur}
+								className="w-full h-10 px-3 bg-muted/50 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+							>
+								<option value="">None</option>
+								<option value="FLAT">Flat (৳)</option>
+								<option value="PERCENTAGE">Percentage (%)</option>
+							</select>
+							{formik.touched.discountType &&
+								formik.errors.discountType && (
+									<p className="text-[11px] text-destructive">
+										{formik.errors.discountType}
+									</p>
+								)}
+						</div>
+					</div>
+
+					<div className="space-y-1.5">
+						<label className="text-xs font-bold text-foreground">
+							Description
+						</label>
+						<textarea
+							name="description"
+							value={formik.values.description}
+							onChange={formik.handleChange}
+							onBlur={formik.handleBlur}
+							placeholder="Detailed description (optional)"
+							rows={3}
+							className="w-full px-3 py-2 bg-muted/50 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+						/>
+					</div>
+
+					{/* Variations Section */}
+					<div className="space-y-2">
+						<label className="text-xs font-bold text-foreground">
+							Variations
+						</label>
+
+						{variations.length > 0 && (
+							<div className="space-y-1.5">
+								{variations.map((v, i) => (
+									<div
+										key={v.id ?? `new-${i}`}
+										className="flex items-center justify-between px-3 py-2 bg-muted/30 rounded-xl"
+									>
+										<div className="flex items-center gap-2">
+											<span className="text-xs font-medium text-foreground">
+												{v.name}
+											</span>
+											<span className="text-xs text-muted-foreground">
+												৳{v.price}
+											</span>
+										</div>
+										<button
+											type="button"
+											onClick={() => handleRemoveVariation(i)}
+											className="text-muted-foreground hover:text-destructive transition-colors"
+										>
+											<Trash2 className="w-3.5 h-3.5" />
+										</button>
+									</div>
+								))}
+							</div>
+						)}
+
+						<div className="flex gap-2">
+							<Input
+								value={newVariationName}
+								onChange={(e) => setNewVariationName(e.target.value)}
+								placeholder="Name (e.g. Basic)"
+								className="h-9 text-xs flex-1"
+							/>
+							<Input
+								type="number"
+								min="0"
+								value={newVariationPrice}
+								onChange={(e) => setNewVariationPrice(e.target.value)}
+								placeholder="Price"
+								className="h-9 text-xs w-24"
+							/>
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								onClick={handleAddVariation}
+								disabled={
+									!newVariationName.trim() || !newVariationPrice
+								}
+								className="h-9 px-3"
+							>
+								<Plus className="w-3.5 h-3.5" />
+							</Button>
+						</div>
 					</div>
 
 					<SheetFooter className="mt-6">
@@ -605,7 +1034,7 @@ function ServiceSheet({
 							{isPending && (
 								<Loader2 className="w-4 h-4 animate-spin mr-1.5" />
 							)}
-							{initialValues ? "Update" : "Create"}
+							{isEditing ? "Update" : "Create"}
 						</Button>
 					</SheetFooter>
 				</form>

@@ -56,10 +56,33 @@ export interface CategoryPaginationParams {
 	page?: number;
 	limit?: number;
 	all_services?: boolean;
+	search?: string;
+	isActive?: boolean;
+}
+
+// Dropdown params
+export interface CategoryDropdownParams {
+	search?: string;
+	isActive?: boolean;
+}
+
+// Dropdown option type
+export interface CategoryDropdownOption {
+	id: number;
+	name: string;
+}
+
+// Dropdown response type
+export interface CategoryDropdownResponse {
+	data: CategoryDropdownOption[];
 }
 
 // API functions
 export const categoryApi = {
+	// Get categories dropdown
+	getDropdown: (params?: CategoryDropdownParams): Promise<CategoryDropdownResponse> =>
+		api.get(ApiRoutes.category.dropdown, { params }),
+
 	// Get categories with pagination
 	getCategories: (params?: CategoryPaginationParams): Promise<CategoryListResponse> =>
 		api.get(ApiRoutes.category.root, { params }),
