@@ -11,6 +11,13 @@ export interface ServiceVariation {
 	updatedAt: string;
 }
 
+export interface ServiceCategoryVendor {
+	userId: number;
+	businessName: string;
+	logoUrl: string | null;
+	rating: string;
+}
+
 export interface ServiceCategory {
 	id: number;
 	name: string;
@@ -39,6 +46,7 @@ export interface Service {
 	updatedAt: string;
 	variations: ServiceVariation[];
 	category: ServiceCategory;
+	vendors: ServiceCategoryVendor[];
 }
 
 // Pagination meta

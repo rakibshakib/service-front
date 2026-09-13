@@ -35,6 +35,7 @@ import { useCategoryDropdown } from "@/lib/api/category/hooks";
 import type {
 	CreateServicePayload,
 	Service,
+	ServiceCategoryVendor,
 	ServiceVariation,
 	UpdateServicePayload,
 } from "@/lib/api/service";
@@ -154,11 +155,14 @@ export default function AdminServicesPage() {
 				</div>
 			) : (
 				<div className="bg-card rounded-2xl border border-border shadow-sm overflow-x-auto">
-					<Table className="min-w-[900px]">
+					<Table className="min-w-[1000px]">
 						<TableHeader>
 							<TableRow className="bg-muted/50">
 								<TableHead className="font-bold text-foreground">
 									Service
+								</TableHead>
+								<TableHead className="font-bold text-foreground">
+									Vendors
 								</TableHead>
 								<TableHead className="font-bold text-foreground">
 									Category
@@ -180,7 +184,7 @@ export default function AdminServicesPage() {
 						<TableBody>
 							{services.length === 0 ? (
 								<TableRow>
-									<TableCell colSpan={6} className="text-center py-10">
+									<TableCell colSpan={7} className="text-center py-10">
 										<p className="text-sm text-muted-foreground">
 											No services found
 										</p>
@@ -217,6 +221,11 @@ export default function AdminServicesPage() {
 														{service.name}
 													</p>
 												</div>
+											</TableCell>
+											<TableCell>
+												<VendorAvatars
+													vendors={service.vendors ?? []}
+												/>
 											</TableCell>
 											<TableCell>
 												<div className="flex items-center gap-1.5">
@@ -525,11 +534,22 @@ function VariationsPopover({
 }) {
 	const [isOpen, setIsOpen] = useState(false);
 	const buttonRef = useRef<HTMLButtonElement>(null);
-	const [buttonRect, setButtonRect] = useState<DOMRect | null>(null);
+	const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
 
 	const handleToggle = () => {
 		if (!isOpen && buttonRef.current) {
-			setButtonRect(buttonRef.current.getBoundingClientRect());
+			const rect = buttonRef.current.getBoundingClientRect();
+			const viewportHeight = window.innerHeight;
+			const popoverHeight = Math.min(count, 5) * 36 + 40;
+			const spaceBelow = viewportHeight - rect.bottom;
+			const openUp = spaceBelow < popoverHeight + 16;
+
+			setPosition({
+				top: openUp
+					? rect.top + window.scrollY - popoverHeight - 4
+					: rect.bottom + window.scrollY + 4,
+				left: Math.min(rect.left + window.scrollX, window.innerWidth - 264),
+			});
 		}
 		setIsOpen(!isOpen);
 	};
@@ -547,7 +567,7 @@ function VariationsPopover({
 			</button>
 
 			{isOpen &&
-				buttonRect &&
+				position &&
 				createPortal(
 					<>
 						<div
@@ -557,8 +577,8 @@ function VariationsPopover({
 						<div
 							className="fixed z-[9999] w-64 bg-card border border-border rounded-xl shadow-lg overflow-hidden"
 							style={{
-								top: buttonRect.bottom + window.scrollY + 4,
-								left: buttonRect.left + window.scrollX,
+								top: position.top,
+								left: position.left,
 							}}
 						>
 							<div className="px-3 py-2 bg-muted/50 border-b border-border">
@@ -578,6 +598,129 @@ function VariationsPopover({
 										<span className="text-xs font-bold text-foreground shrink-0 ml-2">
 											৳{v.price}
 										</span>
+									</div>
+								))}
+							</div>
+						</div>
+					</>,
+					document.body,
+				)}
+		</>
+	);
+}
+
+// Vendor Avatars Component
+function VendorAvatars({ vendors }: { vendors: ServiceCategoryVendor[] }) {
+	const [isOpen, setIsOpen] = useState(false);
+	const buttonRef = useRef<HTMLButtonElement>(null);
+	const [position, setPosition] = useState<{ top: number; left: number; openUp: boolean } | null>(null);
+
+	if (vendors.length === 0) {
+		return <span className="text-xs text-muted-foreground">-</span>;
+	};
+
+	const handleToggle = () => {
+		if (!isOpen && buttonRef.current) {
+			const rect = buttonRef.current.getBoundingClientRect();
+			const viewportHeight = window.innerHeight;
+			const popoverHeight = Math.min(vendors.length, 4) * 44 + 40;
+			const spaceBelow = viewportHeight - rect.bottom;
+			const openUp = spaceBelow < popoverHeight + 16;
+
+			setPosition({
+				top: openUp
+					? rect.top + window.scrollY - popoverHeight - 4
+					: rect.bottom + window.scrollY + 4,
+				left: Math.min(rect.left + window.scrollX, window.innerWidth - 264),
+				openUp,
+			});
+		}
+		setIsOpen(!isOpen);
+	};
+
+	return (
+		<>
+			<button
+				ref={buttonRef}
+				type="button"
+				onClick={handleToggle}
+				className="flex items-center cursor-pointer"
+			>
+				<div className="flex items-center">
+					{vendors.slice(0, 3).map((vendor, i) => (
+						<div
+							key={vendor.userId}
+							className="relative w-7 h-7 rounded-full overflow-hidden border-2 border-card bg-muted"
+							style={{
+								marginLeft: i > 0 ? "-6px" : 0,
+								zIndex: 3 - i,
+							}}
+						>
+							<Image
+								src={
+									vendor.logoUrl ||
+									`https://ui-avatars.com/api/?name=${encodeURIComponent(vendor.businessName)}&background=12544F&color=fff&bold=true&size=28`
+								}
+								alt={vendor.businessName}
+								fill
+								sizes="28px"
+								className="object-cover"
+							/>
+						</div>
+					))}
+					{vendors.length > 3 && (
+						<div className="relative w-7 h-7 rounded-full overflow-hidden border-2 border-card bg-muted -ml-1.5 z-0">
+							<span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-muted-foreground">
+								+{vendors.length - 3}
+							</span>
+						</div>
+					)}
+				</div>
+			</button>
+
+			{isOpen &&
+				position &&
+				createPortal(
+					<>
+						<div
+							className="fixed inset-0 z-[9998]"
+							onClick={() => setIsOpen(false)}
+						/>
+						<div
+							className="fixed z-[9999] w-64 bg-card border border-border rounded-xl shadow-lg overflow-hidden"
+							style={{
+								top: position.top,
+								left: position.left,
+							}}
+						>
+							<div className="px-3 py-2 bg-muted/50 border-b border-border">
+								<p className="text-xs font-bold text-foreground">
+									Vendors ({vendors.length})
+								</p>
+							</div>
+							<div className="max-h-[240px] overflow-y-auto custom-scrollbar divide-y divide-border">
+								{vendors.map((vendor) => (
+									<div
+										key={vendor.userId}
+										className="flex items-center gap-2.5 px-3 py-2.5 hover:bg-muted/30"
+									>
+										<div className="relative w-8 h-8 rounded-full overflow-hidden shrink-0 bg-muted">
+											<Image
+												src={
+													vendor.logoUrl ||
+													`https://ui-avatars.com/api/?name=${encodeURIComponent(vendor.businessName)}&background=12544F&color=fff&bold=true&size=32`
+												}
+												alt={vendor.businessName}
+												fill
+												sizes="32px"
+												className="object-cover"
+											/>
+										</div>
+										<div className="min-w-0">
+											<p className="text-xs font-bold text-foreground truncate">
+												{vendor.businessName}
+											</p>
+										</div>
 									</div>
 								))}
 							</div>
