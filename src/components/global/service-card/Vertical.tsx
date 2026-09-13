@@ -55,7 +55,7 @@ const Vertical = ({
 						<div className="flex items-center">
 							{vendors.slice(0, 3).map((vendor, i) => (
 								<div
-									key={vendor.name}
+									key={vendor.id ?? `vendor-${i}`}
 									className="relative w-5 h-5 rounded-full overflow-hidden border-2 border-card bg-muted"
 									style={{
 										marginLeft: i > 0 ? "-6px" : 0,

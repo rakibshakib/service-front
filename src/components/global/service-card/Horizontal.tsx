@@ -13,7 +13,7 @@ const Horizontal = ({
 	const { name, shortDescription, image, category, vendors = [] } = service;
 
 	return (
-		<div className="group relative flex items-stretch w-full max-w-85 rounded-xl border border-border bg-card text-card-foreground shadow-sm transition-all duration-300 hover:shadow-lg hover:shadow-primary/5">
+		<div className="group relative flex items-stretch w-full max-w-85 h-36 rounded-xl border border-border bg-card text-card-foreground shadow-sm transition-all duration-300 hover:shadow-lg hover:shadow-primary/5">
 			{/* Image - Left Side */}
 			<div className="relative overflow-hidden rounded-l-xl w-20 sm:w-30 shrink-0 bg-muted">
 				<ServiceImage
@@ -57,7 +57,7 @@ const Horizontal = ({
 							<div className="flex items-center">
 								{vendors.slice(0, 3).map((vendor, i) => (
 									<div
-										key={vendor.name}
+										key={vendor.id ?? `vendor-${i}`}
 										className="relative w-4 h-4 rounded-full overflow-hidden border-2 border-card bg-muted"
 										style={{
 											marginLeft: i > 0 ? "-5px" : 0,

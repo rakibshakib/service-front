@@ -5,6 +5,10 @@ import type { Service as ServiceCardType } from "@/components/global/service-car
 import VendorCard from "@/components/global/vendor-card/VendorCard";
 import type { Vendor } from "@/components/global/vendor-card/types";
 import Slider from "@/components/ui/slider";
+import { useCategories } from "@/lib/api/category/hooks";
+import { useServicesForCustomer } from "@/lib/api/service/hooks";
+import type { Service as ApiService } from "@/lib/api/service";
+import type { Category as ApiCategory } from "@/lib/api/category";
 import {
 	ArrowRight,
 	CheckCircle2,
@@ -18,7 +22,7 @@ import {
 	TrendingUp,
 	X,
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 
 // Types
 interface Category {
@@ -41,138 +45,30 @@ interface NewVendor {
 	skills: string[];
 }
 
-// Data Sets
-const categories: Category[] = [
-	{ id: 1, name: "Cleaning", icon: "🧹", count: 120 },
-	{ id: 2, name: "Electrical", icon: "⚡", count: 85 },
-	{ id: 3, name: "Plumbing", icon: "🪠", count: 64 },
-	{ id: 4, name: "Appliance", icon: "🔧", count: 95 },
-	{ id: 5, name: "Painting", icon: "🎨", count: 42 },
-	{ id: 6, name: "Car Wash", icon: "🚗", count: 50 },
-	{ id: 7, name: "Driving", icon: "🚘", count: 30 },
-	{ id: 8, name: "Pest Control", icon: "🐛", count: 38 },
-	{ id: 9, name: "Moving", icon: "📦", count: 25 },
-	{ id: 10, name: "Gardening", icon: "🌿", count: 45 },
-	{ id: 11, name: "Tailoring", icon: "🧵", count: 60 },
-	{ id: 12, name: "Photography", icon: "📸", count: 35 },
-	{ id: 13, name: "Tutoring", icon: "📚", count: 70 },
-	{ id: 14, name: "Massage", icon: "💆", count: 28 },
-];
+// Map API category to landing page format
+const mapCategoryToLanding = (cat: ApiCategory) => ({
+	id: cat.id,
+	name: cat.name,
+	icon: cat.icon || "🔧",
+	count: cat.totalServices || 0,
+});
 
-const services: ServiceCardType[] = [
-	{
-		name: "AC Deep Servicing & Gas Topup",
-		shortDescription:
-			"Complete jet wash cleaning, filter sanitization and gas level check by certified technicians.",
-		basePrice: 1200,
-		category: "Appliance",
-		image: "https://images.unsplash.com/photo-1585771724684-38269d6639fd?q=80&w=800&auto=format&fit=crop",
-		vendors: [
-			{
-				name: "Electro Care",
-				rating: 4.8,
-				avatar:
-					"https://ui-avatars.com/api/?name=EC&background=12544F&color=fff&bold=true",
-			},
-		],
-	},
-	{
-		name: "Full Home Deep Cleaning",
-		shortDescription:
-			"Comprehensive eco-friendly cleaning for all rooms, bathrooms, windows, and balcony.",
-		basePrice: 2500,
-		discountAmount: 15,
-		discountType: "percent",
-		category: "Cleaning",
-		image: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?q=80&w=800&auto=format&fit=crop",
-		vendors: [
-			{
-				name: "CleanCo",
-				rating: 4.9,
-				avatar:
-					"https://ui-avatars.com/api/?name=CC&background=12544F&color=fff&bold=true",
-			},
-			{
-				name: "Sparkle",
-				rating: 4.7,
-				avatar:
-					"https://ui-avatars.com/api/?name=SS&background=2A835F&color=fff&bold=true",
-			},
-		],
-	},
-	{
-		name: "Sofa & Carpet Steam Clean",
-		shortDescription:
-			"Deep steam sanitization and stain removal for multi-seater sofas, chairs, and rugs.",
-		basePrice: 800,
-		category: "Cleaning",
-		image: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?q=80&w=800&auto=format&fit=crop",
-		vendors: [
-			{
-				name: "FreshHome",
-				rating: 4.7,
-				avatar:
-					"https://ui-avatars.com/api/?name=FH&background=8BBB92&color=fff&bold=true",
-			},
-		],
-	},
-	{
-		name: "Electrical Wiring & DB Box Fix",
-		shortDescription:
-			"Troubleshooting short circuits, socket installations, and switchboard repairs.",
-		basePrice: 500,
-		category: "Electrical",
-		image: "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?q=80&w=800&auto=format&fit=crop",
-		vendors: [
-			{
-				name: "PowerGrid",
-				rating: 4.6,
-				avatar:
-					"https://ui-avatars.com/api/?name=PG&background=12544F&color=fff&bold=true",
-			},
-		],
-	},
-	{
-		name: "Bathroom Leakage & Pipe Repair",
-		shortDescription:
-			"Fix leaking taps, blockages, pipe fittings, and sanitary hardware upgrades.",
-		basePrice: 650,
-		category: "Plumbing",
-		image: "https://images.unsplash.com/photo-1585704032915-c3400ca199e7?q=80&w=800&auto=format&fit=crop",
-		vendors: [
-			{
-				name: "PipeMaster",
-				rating: 4.8,
-				avatar:
-					"https://ui-avatars.com/api/?name=PM&background=2A835F&color=fff&bold=true",
-			},
-			{
-				name: "FlowFix",
-				rating: 4.5,
-				avatar:
-					"https://ui-avatars.com/api/?name=FF&background=8BBB92&color=fff&bold=true",
-			},
-		],
-	},
-	{
-		name: "Kitchen Deep Sanitization",
-		shortDescription:
-			"Complete kitchen deep clean with eco-friendly sanitizers and degreasers.",
-		basePrice: 1500,
-		discountAmount: 500,
-		discountType: "flat",
-		category: "Cleaning",
-		image: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?q=80&w=800&auto=format&fit=crop",
-		vendors: [
-			{
-				name: "CleanCo",
-				rating: 4.9,
-				avatar:
-					"https://ui-avatars.com/api/?name=CC&background=12544F&color=fff&bold=true",
-			},
-		],
-	},
-];
+// Map API service to ServiceCard format
+const mapServiceToCard = (service: ApiService): ServiceCardType => ({
+	name: service.name,
+	shortDescription: service.shortDescription || "",
+	basePrice: Number(service.basePrice),
+	discountAmount: service.discountAmount ? Number(service.discountAmount) : undefined,
+	discountType: service.discountType === "PERCENTAGE" ? "percent" : service.discountType === "FLAT" ? "flat" : undefined,
+	image: service.imageUrl || undefined,
+	category: service.category?.name,
+	vendors: service.vendors?.map((v) => ({
+		id: v.userId,
+		name: v.businessName,
+		avatar: v.logoUrl || undefined,
+		rating: Number(v.rating) || undefined,
+	})) || [],
+});
 
 const vendors: Vendor[] = [
 	{
@@ -242,63 +138,6 @@ const vendors: Vendor[] = [
 		skills: ["Leak Repair", "Tap Install", "Water Meter"],
 		isOnline: true,
 		startingPrice: 450,
-	},
-];
-
-const discountServices: ServiceCardType[] = [
-	{
-		name: "Kitchen Deep Sanitization",
-		shortDescription:
-			"Complete kitchen deep clean with eco-friendly sanitizers and degreasers for a spotless shine.",
-		basePrice: 1500,
-		discountAmount: 500,
-		discountType: "flat",
-		category: "Cleaning",
-		image: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?q=80&w=800&auto=format&fit=crop",
-		vendors: [
-			{
-				name: "CleanCo",
-				rating: 4.9,
-				avatar:
-					"https://ui-avatars.com/api/?name=CC&background=12544F&color=fff&bold=true",
-			},
-		],
-	},
-	{
-		name: "Car Interior Detailing & Foam Wash",
-		shortDescription:
-			"Premium interior detailing with foam wash, ceramic polish, and vacuum cleaning service.",
-		basePrice: 2000,
-		discountAmount: 600,
-		discountType: "flat",
-		category: "Car Wash",
-		image: "https://images.unsplash.com/photo-1507136566006-cfc505b114fc?q=80&w=800&auto=format&fit=crop",
-		vendors: [
-			{
-				name: "ProAuto",
-				rating: 4.8,
-				avatar:
-					"https://ui-avatars.com/api/?name=PA&background=2A835F&color=fff&bold=true",
-			},
-		],
-	},
-	{
-		name: "Water Heater Repair & Installation",
-		shortDescription:
-			"Expert water heater repair, gas geyser installation, and maintenance services.",
-		basePrice: 800,
-		discountAmount: 300,
-		discountType: "flat",
-		category: "Appliance",
-		image: "https://images.unsplash.com/photo-1585771724684-38269d6639fd?q=80&w=800&auto=format&fit=crop",
-		vendors: [
-			{
-				name: "FixIt",
-				rating: 4.7,
-				avatar:
-					"https://ui-avatars.com/api/?name=FI&background=8BBB92&color=fff&bold=true",
-			},
-		],
 	},
 ];
 
@@ -384,6 +223,41 @@ const Landing = () => {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [favoriteVendors, setFavoriteVendors] = useState<number[]>([]);
 
+	// Fetch categories from API
+	const { data: categoriesResponse, isLoading: isCategoriesLoading } = useCategories({
+		limit: 20,
+		isActive: true,
+	});
+	const apiCategories = categoriesResponse?.data ?? [];
+	const categories = useMemo(
+		() => apiCategories.map(mapCategoryToLanding),
+		[apiCategories],
+	);
+
+	// Fetch popular services (most rated) from API
+	const { data: popularServicesResponse, isLoading: isPopularLoading } = useServicesForCustomer({
+		page: 1,
+		limit: 20,
+		most_rated: true,
+	});
+	const apiPopularServices = popularServicesResponse?.data ?? [];
+	const popularServices = useMemo(
+		() => apiPopularServices.map(mapServiceToCard),
+		[apiPopularServices],
+	);
+
+	// Fetch discount services from API
+	const { data: discountServicesResponse, isLoading: isDiscountLoading } = useServicesForCustomer({
+		page: 1,
+		limit: 20,
+		has_discount: true,
+	});
+	const apiDiscountServices = discountServicesResponse?.data ?? [];
+	const discountServicesData = useMemo(
+		() => apiDiscountServices.map(mapServiceToCard),
+		[apiDiscountServices],
+	);
+
 	const toggleFavorite = (id: number, e: React.MouseEvent) => {
 		e.stopPropagation();
 		setFavoriteVendors((prev) =>
@@ -391,7 +265,7 @@ const Landing = () => {
 		);
 	};
 
-	const filteredServices = services.filter((service) => {
+	const filteredServices = popularServices.filter((service) => {
 		const matchesCategory = selectedCategory
 			? service.category === selectedCategory
 			: true;
@@ -720,7 +594,7 @@ const Landing = () => {
 						</button>
 					</div>
 					<Slider
-						data={discountServices}
+						data={discountServicesData}
 						renderItem={(service) => (
 							<ServiceCard service={service} variant="horizontal" />
 						)}

@@ -22,6 +22,7 @@ const ApiRoutes = {
 	service: {
 		root: "/api/service",
 		status: (id: number) => `/api/service/${id}/status`,
+		forCustomer: "/api/service/for-customer",
 	},
 	customer: {
 		root: "/api/customer",

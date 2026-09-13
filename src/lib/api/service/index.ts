@@ -100,8 +100,20 @@ export interface ServicePaginationParams {
 	limit?: number;
 }
 
+// For Customer params
+export interface ServiceForCustomerParams {
+	page?: number;
+	limit?: number;
+	most_rated?: boolean;
+	has_discount?: boolean;
+}
+
 // API functions
 export const serviceApi = {
+	// Get services for customer (public)
+	getServicesForCustomer: (params?: ServiceForCustomerParams): Promise<ServiceListResponse> =>
+		api.get(ApiRoutes.service.forCustomer, { params }),
+
 	// Get services with pagination
 	getServices: (params?: ServicePaginationParams): Promise<ServiceListResponse> =>
 		api.get(ApiRoutes.service.root, { params }),
